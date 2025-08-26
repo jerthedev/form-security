@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/12.0/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+         processIsolation="false"
+         stopOnFailure="false"
+         executionOrder="random"
+         failOnWarning="true"
+         failOnRisky="true"
+         failOnEmptyTestSuite="true"
+         beStrictAboutOutputDuringTests="true"
+         cacheDirectory=".phpunit.cache"
+         backupGlobals="false">
+    
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+
+        <testsuite name="Performance">
+            <directory>tests/Performance</directory>
+        </testsuite>
+    </testsuites>
+
+    <source>
+        <include>
+            <directory suffix=".php">src</directory>
+        </include>
+        <exclude>
+            <directory>src/Console/Commands</directory>
+            <file>src/FormSecurityServiceProvider.php</file>
+        </exclude>
+    </source>
+
+    <coverage>
+        <report>
+            <html outputDirectory="coverage/html"/>
+            <text outputFile="coverage/coverage.txt"/>
+            <xml outputDirectory="coverage/xml"/>
+        </report>
+    </coverage>
+
+
+
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="APP_KEY" value="base64:2fl+Ktvkdphvz9JfhttxMNMOmxs+VkMfLQb/kQQ4oQM="/>
+        <env name="CACHE_DRIVER" value="array"/>
+        <env name="DB_CONNECTION" value="testing"/>
+        <env name="DB_DATABASE" value=":memory:"/>
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="SESSION_DRIVER" value="array"/>
+        
+        <!-- FormSecurity Test Configuration -->
+        <env name="FORM_SECURITY_ENABLED" value="true"/>
+        <env name="FORM_SECURITY_SPAM_DETECTION" value="true"/>
+        <env name="FORM_SECURITY_RATE_LIMITING" value="true"/>
+        <env name="FORM_SECURITY_CACHING" value="false"/>
+        <env name="FORM_SECURITY_DEBUG" value="true"/>
+        <env name="FORM_SECURITY_SPAM_THRESHOLD" value="0.7"/>
+    </php>
+
+    <logging>
+        <junit outputFile="coverage/junit.xml"/>
+    </logging>
+</phpunit>

@@ -1,0 +1,503 @@
+# JTD-FormSecurity Package Development Guidelines
+
+## Package Identity
+
+**Package Name**: JTD-FormSecurity
+**Purpose**: Comprehensive Laravel package for form security and spam prevention
+**Target Framework**: Laravel 12.x (Latest)
+**PHP Version**: 8.2+ (Required for Laravel 12)
+**Testing Framework**: PHPUnit 12.x
+**License**: MIT
+**Namespace**: JTD\FormSecurity
+**GitHub Repository**: jerthedev/form-security
+**Packagist Package**: jerthedev/form-security
+**Public Release**: Yes - Open source package for Laravel community
+
+**Package Vision**: 
+Provide enterprise-grade form security with modular architecture, high performance, 
+and seamless Laravel 12 integration. Focus on developer experience, security best 
+practices, and scalable solutions for high-volume applications.
+
+## Core Architecture Principles
+
+### 1. Laravel 12 Native Integration
+- Leverage Laravel 12's enhanced service container and dependency injection
+- Utilize modern Laravel 12 console command improvements
+- Implement Laravel 12's enhanced caching and database features
+- Follow Laravel 12 package development best practices
+- Use Laravel 12's improved testing utilities and assertions
+
+### 2. Modular Design with Graceful Degradation
+- Each feature should be independently toggleable
+- Core functionality must work even if optional features are disabled
+- Service provider should register services conditionally based on configuration
+- Implement feature flags for A/B testing and gradual rollouts
+
+### 3. Performance-First Architecture
+- Target: Sub-100ms query response times for 10,000+ daily submissions
+- Implement multi-level caching (90%+ hit ratio target)
+- Optimize database queries with proper indexing strategies
+- Use Laravel 12's query optimization features
+- Implement lazy loading and eager loading patterns appropriately
+
+### 4. Security by Design
+- Follow OWASP security guidelines for form protection
+- Implement input validation at multiple layers
+- Use Laravel 12's enhanced security features
+- Encrypt sensitive data using Laravel's encryption
+- Implement rate limiting and IP reputation tracking
+
+### 5. Developer Experience Excellence
+- Provide comprehensive CLI tools for package management
+- Include detailed documentation with code examples
+- Implement helpful error messages and debugging tools
+- Follow PSR-12 coding standards
+- Use meaningful method and class names
+
+## Development Standards
+
+### Code Style and Standards
+- **PSR-12**: Strict adherence to PSR-12 coding standards
+- **Laravel Pint**: Automatic code formatting (run on all PHP files before commit)
+- **PHPStan Level 8**: Maximum static analysis level for type safety
+- **Larastan**: Laravel-specific PHPStan rules and extensions
+- **PHP 8.2+ Features**: Leverage modern PHP features (readonly properties, enums, etc.)
+- **Code Quality Gates**: All tools must pass before GitHub commits are accepted
+
+### File Organization
+```
+src/
+├── FormSecurityServiceProvider.php     # Main service provider
+├── Contracts/                          # Service contracts and interfaces
+├── Services/                          # Business logic services
+├── Models/                            # Eloquent models
+├── Console/Commands/                  # Artisan commands
+├── Middleware/                        # HTTP middleware
+├── Rules/                             # Validation rules
+├── Events/                            # Event classes
+├── Listeners/                         # Event listeners
+├── Exceptions/                        # Custom exceptions
+└── Support/                           # Helper classes and utilities
+
+config/
+├── form-security.php                 # Main configuration
+├── form-security-cache.php           # Cache configuration
+└── form-security-patterns.php        # Spam pattern configuration
+
+database/
+├── migrations/                        # Database migrations
+└── seeders/                          # Database seeders
+
+tests/
+├── Unit/                             # Unit tests
+├── Feature/                          # Feature tests
+├── Performance/                      # Performance benchmarks
+└── TestCase.php                      # Base test case
+```
+
+### Naming Conventions
+- **Classes**: PascalCase (e.g., `SpamDetectionService`)
+- **Methods**: camelCase (e.g., `analyzeFormSubmission`)
+- **Variables**: camelCase (e.g., `$spamScore`)
+- **Constants**: SCREAMING_SNAKE_CASE (e.g., `MAX_SPAM_SCORE`)
+- **Database Tables**: snake_case (e.g., `blocked_submissions`)
+- **Configuration Keys**: snake_case (e.g., `enable_ai_analysis`)
+
+### Documentation Standards
+- **PHPDoc**: Comprehensive PHPDoc blocks for all public methods
+- **Type Hints**: Use PHP 8.2+ type hints for all parameters and return types
+- **README**: Maintain comprehensive README with installation and usage examples
+- **CHANGELOG**: Follow Keep a Changelog format
+- **API Documentation**: Generate API docs using phpDocumentor
+
+## Testing Strategy (PHPUnit 12)
+
+### Testing Framework Configuration
+- **PHPUnit 12.x**: Latest version with modern testing features
+- **Laravel Testing**: Use Laravel 12's enhanced testing utilities
+- **Test Database**: SQLite in-memory for fast test execution
+- **Coverage Target**: Minimum 90% code coverage
+- **Performance Testing**: Include performance benchmarks in test suite
+
+### Test Structure and Organization
+```
+tests/
+├── Unit/                             # Isolated unit tests
+│   ├── Models/                       # Model tests
+│   ├── Services/                     # Service class tests
+│   └── Rules/                        # Validation rule tests
+├── Feature/                          # Integration tests
+│   ├── Console/                      # Command tests
+│   ├── Http/                         # HTTP endpoint tests
+│   └── Database/                     # Database integration tests
+├── Performance/                      # Performance benchmarks
+│   ├── DatabasePerformanceTest.php
+│   └── CachePerformanceTest.php
+└── TestCase.php                      # Base test case with common setup
+```
+
+### PHPUnit 12 Best Practices
+- **Attributes over Annotations**: Use PHP 8 attributes instead of PHPDoc annotations
+- **Data Providers**: Use data providers for parameterized tests
+- **Test Doubles**: Leverage PHPUnit 12's improved mock and stub separation
+- **Assertions**: Use specific assertions (e.g., `assertSame` vs `assertEquals`)
+- **Test Organization**: Group related tests using `#[Group]` attributes for Epic/Sprint/Ticket filtering
+
+### Testing Guidelines
+
+#### Test File Header Requirements
+**CRITICAL**: Every test file must include a header comment referencing the related Epic, Spec, Sprint, and Ticket:
+
+```php
+<?php
+
+/**
+ * Test File: SpamDetectionServiceTest.php
+ *
+ * EPIC: EPIC-001-foundation-infrastructure
+ * SPEC: SPEC-002-spam-detection-algorithms
+ * SPRINT: Sprint-001-Core-Infrastructure
+ * TICKET: 1015-implement-spam-detection-service
+ *
+ * Description: Tests for the core spam detection service functionality
+ * including pattern matching, scoring algorithms, and threshold validation.
+ *
+ * @see docs/Planning/Epics/EPIC-001-foundation-infrastructure.md
+ * @see docs/Planning/Specs/Core-Detection/SPEC-002-spam-detection-algorithms.md
+ * @see docs/Planning/Tickets/Foundation-Infrastructure/Implementation/1015-implement-spam-detection-service.md
+ */
+
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\Test;
+
+#[Group('epic-001')]
+#[Group('foundation-infrastructure')]
+#[Group('sprint-001')]
+#[Group('ticket-1015')]
+#[Group('spam-detection')]
+class SpamDetectionServiceTest extends TestCase
+{
+    // Test methods...
+}
+```
+
+#### Test Grouping Strategy
+Use PHPUnit 12 `#[Group]` attributes for hierarchical test organization:
+
+**Epic-Level Groups:**
+- `#[Group('epic-001')]` - Foundation Infrastructure
+- `#[Group('epic-002')]` - Spam Detection Algorithms
+- `#[Group('epic-003')]` - Form Validation System
+- etc.
+
+**Feature-Level Groups:**
+- `#[Group('foundation-infrastructure')]`
+- `#[Group('spam-detection')]`
+- `#[Group('form-validation')]`
+- `#[Group('user-registration')]`
+
+**Sprint-Level Groups:**
+- `#[Group('sprint-001')]` - Core Infrastructure Sprint
+- `#[Group('sprint-002')]` - Detection Algorithms Sprint
+- etc.
+
+**Ticket-Level Groups:**
+- `#[Group('ticket-1015')]` - Specific implementation ticket
+- `#[Group('ticket-1016')]` - Next ticket in sequence
+- etc.
+
+**Component-Level Groups:**
+- `#[Group('database')]` - Database-related tests
+- `#[Group('cache')]` - Caching functionality tests
+- `#[Group('cli')]` - Console command tests
+- `#[Group('integration')]` - Integration tests
+- `#[Group('performance')]` - Performance benchmark tests
+
+#### Running Tests by Group
+```bash
+# Run all tests for Epic 001
+vendor/bin/phpunit --group epic-001
+
+# Run all foundation infrastructure tests
+vendor/bin/phpunit --group foundation-infrastructure
+
+# Run specific sprint tests
+vendor/bin/phpunit --group sprint-001
+
+# Run specific ticket tests
+vendor/bin/phpunit --group ticket-1015
+
+# Run multiple groups (AND logic)
+vendor/bin/phpunit --group epic-001,database
+
+# Exclude groups
+vendor/bin/phpunit --exclude-group performance
+
+# Run integration tests for specific Epic
+vendor/bin/phpunit --group epic-001,integration
+```
+
+#### Standard Testing Practices
+- **Test Naming**: Use descriptive test method names (e.g., `test_spam_detection_blocks_high_score_submissions`)
+- **AAA Pattern**: Arrange, Act, Assert structure for all tests
+- **Database Transactions**: Use database transactions for test isolation
+- **Factory Usage**: Use model factories for test data generation
+- **Mock External Services**: Mock all external API calls and services
+
+## Laravel 12 Specific Guidelines
+
+### Service Provider Best Practices
+- Use Laravel 12's enhanced service provider features
+- Implement conditional service registration based on configuration
+- Leverage automatic package discovery
+- Use deferred providers for performance optimization
+- Implement proper service binding with interfaces
+
+### Database and Eloquent
+- Use Laravel 12's enhanced migration features
+- Implement proper database indexing strategies
+- Use Eloquent relationships efficiently
+- Leverage Laravel 12's query builder improvements
+- Implement database connection pooling for high-load scenarios
+
+### Caching Strategy
+- Use Laravel 12's improved cache tagging and invalidation
+- Implement cache warming strategies
+- Use appropriate cache drivers (Redis recommended for production)
+- Implement cache fallback mechanisms
+- Monitor cache hit ratios and performance
+
+### Console Commands
+- Use Laravel 12's enhanced console command features
+- Implement progress bars for long-running operations
+- Use command signatures with proper argument and option definitions
+- Implement proper error handling and user feedback
+- Use Laravel 12's improved command testing utilities
+
+## Security Guidelines
+
+### Input Validation
+- Validate all input at multiple layers (request, service, model)
+- Use Laravel's validation rules with custom rules for spam detection
+- Implement rate limiting for form submissions
+- Sanitize output to prevent XSS attacks
+
+### Data Protection
+- Encrypt sensitive data using Laravel's encryption
+- Implement proper data retention policies
+- Use secure random number generation
+- Follow GDPR compliance guidelines for data handling
+
+### Authentication and Authorization
+- Implement proper authentication for admin features
+- Use Laravel's authorization policies
+- Implement role-based access control where needed
+- Secure API endpoints with proper authentication
+
+## Performance Guidelines
+
+### Database Optimization
+- Use proper indexing strategies for high-volume queries
+- Implement query optimization and monitoring
+- Use database connection pooling
+- Implement proper pagination for large datasets
+
+### Caching Strategy
+- Cache frequently accessed data (IP reputation, geolocation)
+- Implement cache warming for critical data
+- Use appropriate cache TTL values
+- Monitor cache performance and hit ratios
+
+### Memory Management
+- Keep memory usage under 50MB for typical operations
+- Use generators for processing large datasets
+- Implement proper resource cleanup
+- Monitor memory usage in production
+
+## Quality Assurance
+
+### Code Review Process
+- All code must be reviewed before merging
+- Use GitHub pull request templates
+- Implement automated CI/CD pipeline
+- Run all tests and static analysis before merge
+
+### Continuous Integration (GitHub Actions)
+- **Repository**: jerthedev/form-security (public GitHub repository)
+- **CI Pipeline**: GitHub Actions workflow for automated testing and quality checks
+- **PHP Versions**: Test on PHP 8.2, 8.3, and 8.4 (when available)
+- **Laravel Versions**: Test on Laravel 12.x (latest and LTS versions)
+- **Database Matrix**: MySQL 8.0+, PostgreSQL 12+, SQLite 3.8+
+
+**Required CI Checks (All Must Pass):**
+- PHPUnit 12 test suite (90%+ coverage required)
+  - Full test suite execution
+  - Epic-specific test validation
+  - Integration test verification
+  - Performance benchmark validation
+- Laravel Pint code formatting (zero violations)
+- PHPStan Level 8 static analysis (zero errors)
+- Larastan Laravel-specific analysis (zero errors)
+- Security vulnerability scanning
+- Dependency vulnerability checks
+- Package installation testing on fresh Laravel 12 projects
+
+**CI Test Execution Strategy:**
+```yaml
+# Example GitHub Actions test matrix
+- name: Run Epic-specific tests
+  run: |
+    vendor/bin/phpunit --group epic-001 --coverage-text
+    vendor/bin/phpunit --group epic-002 --coverage-text
+
+- name: Run Integration tests
+  run: vendor/bin/phpunit --group integration
+
+- name: Run Performance benchmarks
+  run: vendor/bin/phpunit --group performance --no-coverage
+```
+
+### Release Process (Public Package)
+- **Semantic Versioning**: Follow SemVer strictly for public package compatibility
+- **Packagist Publishing**: Automatic publishing to Packagist via GitHub releases
+- **Changelog**: Maintain comprehensive CHANGELOG.md following Keep a Changelog format
+- **Release Tags**: Proper Git tags trigger automated Packagist updates
+- **Breaking Changes**: Clear documentation and migration guides for major versions
+- **Installation Testing**: Verify `composer require jerthedev/form-security` works on fresh Laravel 12 projects
+- **Documentation**: Update README.md and docs/ for each release
+
+## Development Workflow
+
+### Git Workflow (GitHub Repository: jerthedev/form-security)
+- **Branch Protection**: Main branch protected, requires PR reviews and passing CI
+- **Feature Branches**: All development in feature branches (e.g., `feature/spam-detection-service`)
+- **Conventional Commits**: Follow conventional commit format for automated changelog generation
+- **Pre-commit Hooks**: Automated Laravel Pint formatting and basic validation
+- **Pull Request Requirements**:
+  - All CI checks must pass (tests, Pint, PHPStan, Larastan)
+  - Code review required from maintainer
+  - No merge until all quality gates pass
+- **Commit Quality**: Squash commits before merging to maintain clean history
+
+### Development Tooling Setup
+
+**Required Development Dependencies:**
+```json
+{
+  "require-dev": {
+    "laravel/pint": "^1.0",
+    "phpstan/phpstan": "^1.10",
+    "larastan/larastan": "^2.0",
+    "phpunit/phpunit": "^12.0",
+    "orchestra/testbench": "^9.0",
+    "mockery/mockery": "^1.6"
+  }
+}
+```
+
+**Configuration Files Required:**
+- `pint.json` - Laravel Pint configuration for PSR-12 compliance
+- `phpstan.neon` - PHPStan Level 8 configuration
+- `phpunit.xml` - PHPUnit 12 configuration with coverage settings and group definitions
+- `.github/workflows/ci.yml` - GitHub Actions CI pipeline
+- `composer.json` scripts section for test grouping commands
+
+**Composer Scripts for Test Management:**
+```json
+{
+  "scripts": {
+    "test": "phpunit",
+    "test:coverage": "phpunit --coverage-html coverage",
+    "test:epic-001": "phpunit --group epic-001",
+    "test:epic-002": "phpunit --group epic-002",
+    "test:foundation": "phpunit --group foundation-infrastructure",
+    "test:integration": "phpunit --group integration",
+    "test:performance": "phpunit --group performance --no-coverage",
+    "test:current-sprint": "phpunit --group sprint-001",
+    "pint": "pint",
+    "phpstan": "phpstan analyse",
+    "quality": ["@pint", "@phpstan", "@test"]
+  }
+}
+
+**Pre-commit Quality Checks:**
+```bash
+# Run before every commit (can be automated with git hooks)
+composer run pint                    # Format code with Laravel Pint
+composer run phpstan                 # Static analysis with PHPStan + Larastan
+composer run test                    # Run PHPUnit 12 test suite
+composer run test:coverage          # Generate coverage report
+
+# Epic/Sprint-specific testing during development
+composer run test:epic-001           # Test specific Epic
+composer run test:sprint-current     # Test current sprint
+composer run test:ticket -- --group ticket-1015  # Test specific ticket
+```
+
+**Test Traceability and Documentation:**
+- Every test must be traceable to its Epic, Spec, Sprint, and Ticket
+- Test failures should reference the originating planning documents
+- Coverage reports should be grouped by Epic and Sprint for progress tracking
+- Test documentation should include links to relevant planning documents
+- Failed tests should include context about which Epic/Sprint/Ticket is affected
+
+### Package Management
+- Use Composer for dependency management
+- Keep dependencies up to date with security patches
+- Use version constraints to prevent breaking changes
+- Document all package dependencies and their purposes
+- **Public Package**: Ensure compatibility with standard Laravel 12 installations
+
+### Environment Setup
+- Provide Docker configuration for consistent development environment
+- Include Laravel Sail configuration for easy setup
+- Document all required PHP extensions and system dependencies
+- Provide setup scripts for quick environment initialization
+
+### GitHub Actions CI/CD Pipeline
+
+**Workflow Triggers:**
+- Push to main branch
+- Pull requests to main branch
+- Release tag creation (triggers Packagist update)
+
+**CI Pipeline Jobs:**
+1. **Code Quality** (runs on PHP 8.2, 8.3)
+   - Laravel Pint formatting check
+   - PHPStan Level 8 analysis
+   - Larastan Laravel-specific checks
+
+2. **Testing Matrix** (PHP 8.2/8.3 × Laravel 12.x × MySQL/PostgreSQL/SQLite)
+   - PHPUnit 12 test suite
+   - Code coverage reporting (90%+ required)
+   - Performance benchmarks
+
+3. **Package Testing**
+   - Fresh Laravel 12 installation test
+   - Composer package installation verification
+   - Integration testing with real Laravel app
+
+4. **Security & Dependencies**
+   - Security vulnerability scanning
+   - Dependency audit
+   - License compatibility check
+
+**Deployment:**
+- Automatic Packagist webhook on GitHub releases
+- Documentation deployment to GitHub Pages
+- Release notes generation from conventional commits
+
+### Public Package Considerations
+- **Community Standards**: Follow Laravel community package standards
+- **Documentation**: Comprehensive README with installation and usage examples
+- **Backward Compatibility**: Maintain BC within major versions
+- **Issue Templates**: Provide GitHub issue templates for bug reports and features
+- **Contributing Guide**: Clear CONTRIBUTING.md for community contributions
+- **Code of Conduct**: Include CODE_OF_CONDUCT.md for community guidelines
+
+---
+
+**Last Updated**: 2025-01-27
+**Laravel Version**: 12.x
+**PHPUnit Version**: 12.x
+**PHP Version**: 8.2+

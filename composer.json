@@ -1,0 +1,83 @@
+{
+    "name": "jerthedev/form-security",
+    "description": "Comprehensive Laravel package for form security and spam prevention with enterprise-grade features",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "laravel",
+        "form-security",
+        "spam-prevention",
+        "validation",
+        "security",
+        "laravel-12"
+    ],
+    "authors": [
+        {
+            "name": "Jeremy Fall",
+            "email": "142279948+jerthedev@users.noreply.github.com",
+            "role": "Developer"
+        }
+    ],
+    "homepage": "https://github.com/jerthedev/form-security",
+    "support": {
+        "issues": "https://github.com/jerthedev/form-security/issues",
+        "source": "https://github.com/jerthedev/form-security"
+    },
+    "require": {
+        "php": "^8.2",
+        "laravel/framework": "^12.0"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.0",
+        "phpstan/phpstan": "^2.0",
+        "larastan/larastan": "^3.0",
+        "phpunit/phpunit": "^12.0",
+        "orchestra/testbench": "^10.0",
+        "mockery/mockery": "^1.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "JTD\\FormSecurity\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "JTD\\FormSecurity\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "JTD\\FormSecurity\\FormSecurityServiceProvider"
+            ],
+            "aliases": {
+                "FormSecurity": "JTD\\FormSecurity\\Facades\\FormSecurity"
+            }
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "test:coverage": "phpunit --coverage-html coverage",
+        "test:epic-001": "phpunit --group epic-001",
+        "test:epic-002": "phpunit --group epic-002",
+        "test:foundation": "phpunit --group foundation-infrastructure",
+        "test:integration": "phpunit --group integration",
+        "test:performance": "phpunit --group performance --no-coverage",
+        "test:current-sprint": "phpunit --group sprint-002",
+        "pint": "pint",
+        "phpstan": "phpstan analyse",
+        "quality": [
+            "@pint",
+            "@phpstan",
+            "@test"
+        ]
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

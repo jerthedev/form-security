@@ -45,7 +45,7 @@ class FormSecurityServiceTest extends TestCase
     {
         $data = $this->createSampleFormData();
         $result = $this->formSecurityService->analyzeSubmission($data);
-        
+
         $this->assertValidAnalysisStructure($result);
     }
 
@@ -53,7 +53,7 @@ class FormSecurityServiceTest extends TestCase
     public function analyze_submission_handles_empty_data(): void
     {
         $result = $this->formSecurityService->analyzeSubmission([]);
-        
+
         $this->assertFalse($result['valid']);
         $this->assertEquals(0.0, $result['score']);
         $this->assertContains('empty_submission', $result['threats']);
@@ -66,9 +66,9 @@ class FormSecurityServiceTest extends TestCase
     {
         $data = $this->createSampleFormData();
         $options = ['strict_mode' => true];
-        
+
         $result = $this->formSecurityService->analyzeSubmission($data, $options);
-        
+
         $this->assertValidAnalysisStructure($result);
         $this->assertArrayHasKey('analysis_details', $result);
     }
@@ -78,7 +78,7 @@ class FormSecurityServiceTest extends TestCase
     {
         $validData = $this->createSampleFormData();
         $result = $this->formSecurityService->validateSubmission($validData);
-        
+
         $this->assertIsBool($result);
     }
 
@@ -86,7 +86,7 @@ class FormSecurityServiceTest extends TestCase
     public function validate_submission_handles_empty_data(): void
     {
         $result = $this->formSecurityService->validateSubmission([]);
-        
+
         $this->assertFalse($result);
     }
 
@@ -95,10 +95,10 @@ class FormSecurityServiceTest extends TestCase
     {
         // Enable rate limiting
         config(['form-security.features.rate_limiting' => true]);
-        
+
         $data = $this->createSampleFormData();
         $result = $this->formSecurityService->validateSubmission($data);
-        
+
         $this->assertIsBool($result);
     }
 
@@ -107,9 +107,9 @@ class FormSecurityServiceTest extends TestCase
     {
         $data = $this->createSampleFormData();
         $rules = ['custom_rule' => 'value'];
-        
+
         $result = $this->formSecurityService->validateSubmission($data, $rules);
-        
+
         $this->assertIsBool($result);
     }
 
@@ -118,7 +118,7 @@ class FormSecurityServiceTest extends TestCase
     {
         // Valid IP should not be blocked by default
         $this->assertFalse($this->formSecurityService->isIpBlocked('192.168.1.1'));
-        
+
         // Invalid IP should be blocked
         $this->assertTrue($this->formSecurityService->isIpBlocked('invalid-ip'));
         $this->assertTrue($this->formSecurityService->isIpBlocked('999.999.999.999'));
@@ -129,7 +129,7 @@ class FormSecurityServiceTest extends TestCase
     {
         // Add IP to blocked list
         config(['form-security.blocked_ips' => ['192.168.1.100', '10.0.0.1']]);
-        
+
         $this->assertTrue($this->formSecurityService->isIpBlocked('192.168.1.100'));
         $this->assertTrue($this->formSecurityService->isIpBlocked('10.0.0.1'));
         $this->assertFalse($this->formSecurityService->isIpBlocked('192.168.1.1'));
@@ -140,9 +140,9 @@ class FormSecurityServiceTest extends TestCase
     {
         // Enable IP reputation checking
         config(['form-security.features.ip_reputation' => true]);
-        
+
         $result = $this->formSecurityService->isIpBlocked('8.8.8.8');
-        
+
         $this->assertIsBool($result);
     }
 
@@ -151,7 +151,7 @@ class FormSecurityServiceTest extends TestCase
     {
         $enabled = $this->formSecurityService->getConfig('enabled');
         $this->assertIsBool($enabled);
-        
+
         $threshold = $this->formSecurityService->getConfig('spam_threshold');
         $this->assertIsFloat($threshold);
     }
@@ -167,7 +167,7 @@ class FormSecurityServiceTest extends TestCase
     public function get_config_returns_all_config(): void
     {
         $allConfig = $this->formSecurityService->getConfig();
-        
+
         $this->assertIsArray($allConfig);
         $this->assertArrayHasKey('enabled', $allConfig);
     }
@@ -177,7 +177,7 @@ class FormSecurityServiceTest extends TestCase
     {
         $result = $this->formSecurityService->toggleFeature('test_feature', true);
         $this->assertTrue($result);
-        
+
         $result = $this->formSecurityService->toggleFeature('test_feature', false);
         $this->assertTrue($result);
     }
@@ -186,7 +186,7 @@ class FormSecurityServiceTest extends TestCase
     public function get_package_info_returns_complete_info(): void
     {
         $info = $this->formSecurityService->getPackageInfo();
-        
+
         $this->assertIsArray($info);
         $this->assertArrayHasKey('name', $info);
         $this->assertArrayHasKey('version', $info);
@@ -194,7 +194,7 @@ class FormSecurityServiceTest extends TestCase
         $this->assertArrayHasKey('features', $info);
         $this->assertArrayHasKey('performance', $info);
         $this->assertArrayHasKey('statistics', $info);
-        
+
         $this->assertEquals('JTD FormSecurity', $info['name']);
         $this->assertEquals('1.0.0', $info['version']);
         $this->assertIsBool($info['enabled']);
@@ -210,10 +210,10 @@ class FormSecurityServiceTest extends TestCase
         $reflection = new \ReflectionClass($service);
         $method = $reflection->getMethod('generateRecommendations');
         $method->setAccessible(true);
-        
+
         $analysis = ['score' => 0.9, 'threats' => ['spam_keywords']];
         $recommendations = $method->invoke($service, $analysis);
-        
+
         $this->assertIsArray($recommendations);
         $this->assertContains('Block this submission - high spam probability', $recommendations);
         $this->assertContains('Address detected threats: spam_keywords', $recommendations);
@@ -226,10 +226,10 @@ class FormSecurityServiceTest extends TestCase
         $reflection = new \ReflectionClass($service);
         $method = $reflection->getMethod('generateRecommendations');
         $method->setAccessible(true);
-        
+
         $analysis = ['score' => 0.6];
         $recommendations = $method->invoke($service, $analysis);
-        
+
         $this->assertIsArray($recommendations);
         $this->assertContains('Review this submission manually', $recommendations);
         $this->assertContains('Consider additional verification steps', $recommendations);
@@ -242,10 +242,10 @@ class FormSecurityServiceTest extends TestCase
         $reflection = new \ReflectionClass($service);
         $method = $reflection->getMethod('generateRecommendations');
         $method->setAccessible(true);
-        
+
         $analysis = ['score' => 0.4];
         $recommendations = $method->invoke($service, $analysis);
-        
+
         $this->assertIsArray($recommendations);
         $this->assertContains('Monitor this user for future submissions', $recommendations);
     }
@@ -257,10 +257,10 @@ class FormSecurityServiceTest extends TestCase
         $reflection = new \ReflectionClass($service);
         $method = $reflection->getMethod('generateRecommendations');
         $method->setAccessible(true);
-        
+
         $analysis = ['score' => 0.1];
         $recommendations = $method->invoke($service, $analysis);
-        
+
         $this->assertIsArray($recommendations);
         $this->assertEmpty($recommendations);
     }
@@ -272,10 +272,10 @@ class FormSecurityServiceTest extends TestCase
         $reflection = new \ReflectionClass($service);
         $method = $reflection->getMethod('getSubmissionIdentifier');
         $method->setAccessible(true);
-        
+
         $data = ['_ip' => '192.168.1.1', 'name' => 'test'];
         $identifier = $method->invoke($service, $data);
-        
+
         $this->assertEquals('192.168.1.1', $identifier);
     }
 
@@ -286,10 +286,10 @@ class FormSecurityServiceTest extends TestCase
         $reflection = new \ReflectionClass($service);
         $method = $reflection->getMethod('getSubmissionIdentifier');
         $method->setAccessible(true);
-        
+
         $data = ['name' => 'test', 'email' => 'test@example.com'];
         $identifier = $method->invoke($service, $data);
-        
+
         $this->assertIsString($identifier);
         $this->assertEquals(32, strlen($identifier)); // MD5 hash length
     }
@@ -301,9 +301,9 @@ class FormSecurityServiceTest extends TestCase
         $reflection = new \ReflectionClass($service);
         $method = $reflection->getMethod('checkIpReputation');
         $method->setAccessible(true);
-        
+
         $result = $method->invoke($service, '8.8.8.8');
-        
+
         $this->assertFalse($result);
     }
 
@@ -311,11 +311,11 @@ class FormSecurityServiceTest extends TestCase
     public function service_performance_meets_requirements(): void
     {
         $data = $this->createSampleFormData();
-        
+
         $startTime = microtime(true);
         $this->formSecurityService->analyzeSubmission($data);
         $endTime = microtime(true);
-        
+
         $processingTime = $endTime - $startTime;
         $this->assertPerformanceRequirement($processingTime, 'FormSecurityService analysis');
     }

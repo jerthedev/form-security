@@ -19,11 +19,14 @@
 
 namespace JTD\FormSecurity\Tests\Unit\Models;
 
+use Carbon\Carbon;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use JTD\FormSecurity\Enums\PatternAction;
+use JTD\FormSecurity\Enums\PatternType;
 use JTD\FormSecurity\Models\SpamPattern;
 use JTD\FormSecurity\Tests\TestCase;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
-use Carbon\Carbon;
 
 #[Group('sprint-002')]
 #[Group('epic-001')]
@@ -33,6 +36,8 @@ use Carbon\Carbon;
 #[Group('spam-pattern')]
 class SpamPatternTest extends TestCase
 {
+    use RefreshDatabase;
+
     #[Test]
     public function it_can_create_spam_pattern_with_required_fields(): void
     {
@@ -47,10 +52,10 @@ class SpamPatternTest extends TestCase
 
         $this->assertInstanceOf(SpamPattern::class, $pattern);
         $this->assertEquals('Test Pattern', $pattern->name);
-        $this->assertEquals('regex', $pattern->pattern_type);
+        $this->assertEquals(PatternType::REGEX, $pattern->pattern_type);
         $this->assertEquals('/spam|viagra|casino/i', $pattern->pattern);
         $this->assertEquals(85, $pattern->risk_score);
-        $this->assertEquals('block', $pattern->action);
+        $this->assertEquals(PatternAction::BLOCK, $pattern->action);
         $this->assertTrue($pattern->is_active);
     }
 
@@ -132,7 +137,7 @@ class SpamPatternTest extends TestCase
         ]);
 
         $activePatterns = SpamPattern::active()->get();
-        
+
         $this->assertCount(1, $activePatterns);
         $this->assertEquals('Active Pattern', $activePatterns->first()->name);
         $this->assertTrue($activePatterns->first()->is_active);
@@ -158,8 +163,8 @@ class SpamPatternTest extends TestCase
 
         $this->assertCount(1, $regexPatterns);
         $this->assertCount(1, $keywordPatterns);
-        $this->assertEquals('regex', $regexPatterns->first()->pattern_type);
-        $this->assertEquals('keyword', $keywordPatterns->first()->pattern_type);
+        $this->assertEquals(PatternType::REGEX, $regexPatterns->first()->pattern_type);
+        $this->assertEquals(PatternType::KEYWORD, $keywordPatterns->first()->pattern_type);
     }
 
     #[Test]
@@ -180,7 +185,7 @@ class SpamPatternTest extends TestCase
         ]);
 
         $highPriorityPatterns = SpamPattern::highPriority()->get();
-        
+
         $this->assertCount(1, $highPriorityPatterns);
         $this->assertEquals('High Priority', $highPriorityPatterns->first()->name);
         $this->assertGreaterThanOrEqual(8, $highPriorityPatterns->first()->priority);
@@ -204,10 +209,10 @@ class SpamPatternTest extends TestCase
         ]);
 
         $highAccuracyPatterns = SpamPattern::highAccuracy(0.9)->get();
-        
+
         $this->assertCount(1, $highAccuracyPatterns);
         $this->assertEquals('High Accuracy', $highAccuracyPatterns->first()->name);
-        $this->assertGreaterThanOrEqual(0.9, (float)$highAccuracyPatterns->first()->accuracy_rate);
+        $this->assertGreaterThanOrEqual(0.9, (float) $highAccuracyPatterns->first()->accuracy_rate);
     }
 
     #[Test]
@@ -228,7 +233,7 @@ class SpamPatternTest extends TestCase
         ]);
 
         $recentPatterns = SpamPattern::recentlyMatched(24)->get();
-        
+
         $this->assertCount(1, $recentPatterns);
         $this->assertEquals('Recent Match', $recentPatterns->first()->name);
         $this->assertTrue($recentPatterns->first()->last_matched->isAfter(now()->subHours(24)));
@@ -252,7 +257,7 @@ class SpamPatternTest extends TestCase
         ]);
 
         $learningPatterns = SpamPattern::learning()->get();
-        
+
         $this->assertCount(1, $learningPatterns);
         $this->assertEquals('Learning Pattern', $learningPatterns->first()->name);
         $this->assertTrue($learningPatterns->first()->is_learning);
@@ -276,7 +281,7 @@ class SpamPatternTest extends TestCase
         ]);
 
         $fastPatterns = SpamPattern::fastProcessing(10)->get();
-        
+
         $this->assertCount(1, $fastPatterns);
         $this->assertEquals('Fast Pattern', $fastPatterns->first()->name);
         $this->assertLessThanOrEqual(10, $fastPatterns->first()->processing_time_ms);
@@ -381,7 +386,7 @@ class SpamPatternTest extends TestCase
 
         $this->assertEquals(11, $pattern->match_count);
         $this->assertEquals(1, $pattern->false_positive_count);
-        $this->assertEquals(round(10/11, 4), round((float)$pattern->accuracy_rate, 4)); // 10 true positives out of 11 total
+        $this->assertEquals(round(10 / 11, 4), round((float) $pattern->accuracy_rate, 4)); // 10 true positives out of 11 total
         $this->assertEquals(9, $pattern->processing_time_ms); // Average of 10 and 8
         $this->assertNotNull($pattern->last_matched);
 
@@ -390,7 +395,7 @@ class SpamPatternTest extends TestCase
 
         $this->assertEquals(12, $pattern->match_count);
         $this->assertEquals(2, $pattern->false_positive_count);
-        $this->assertEquals(round(10/12, 4), round((float)$pattern->accuracy_rate, 4)); // 10 true positives out of 12 total
+        $this->assertEquals(round(10 / 12, 4), round((float) $pattern->accuracy_rate, 4)); // 10 true positives out of 12 total
     }
 
     #[Test]
@@ -411,7 +416,7 @@ class SpamPatternTest extends TestCase
 
         $this->assertEquals(0, $pattern->match_count);
         $this->assertEquals(0, $pattern->false_positive_count);
-        $this->assertEquals(1.0, (float)$pattern->accuracy_rate);
+        $this->assertEquals(1.0, (float) $pattern->accuracy_rate);
         $this->assertEquals(0, $pattern->processing_time_ms);
         $this->assertNull($pattern->last_matched);
     }
@@ -443,7 +448,7 @@ class SpamPatternTest extends TestCase
 
         $this->assertEquals(100, $summary['matches']);
         $this->assertEquals(5, $summary['false_positives']);
-        $this->assertEquals(0.95, (float)$summary['accuracy']);
+        $this->assertEquals(0.95, (float) $summary['accuracy']);
         $this->assertEquals(8, $summary['avg_processing_time']);
         $this->assertTrue($summary['is_high_performance']); // High accuracy (0.95) and fast processing (8ms)
     }
@@ -508,5 +513,147 @@ class SpamPatternTest extends TestCase
         $this->assertEquals('High Accuracy', $orderedPatterns->first()->name);
         $this->assertEquals('Medium Accuracy', $orderedPatterns->get(1)->name);
         $this->assertEquals('Low Accuracy', $orderedPatterns->last()->name);
+    }
+
+    #[Test]
+    public function it_casts_pattern_type_to_enum(): void
+    {
+        $pattern = SpamPattern::create([
+            'name' => 'Test Pattern',
+            'pattern_type' => PatternType::KEYWORD->value,
+            'pattern' => 'test',
+            'action' => PatternAction::BLOCK->value,
+        ]);
+
+        $this->assertInstanceOf(PatternType::class, $pattern->pattern_type);
+        $this->assertEquals(PatternType::KEYWORD, $pattern->pattern_type);
+    }
+
+    #[Test]
+    public function it_casts_pattern_action_to_enum(): void
+    {
+        $pattern = SpamPattern::create([
+            'name' => 'Test Pattern',
+            'pattern_type' => PatternType::KEYWORD->value,
+            'pattern' => 'test',
+            'action' => PatternAction::FLAG->value,
+        ]);
+
+        $this->assertInstanceOf(PatternAction::class, $pattern->action);
+        $this->assertEquals(PatternAction::FLAG, $pattern->action);
+    }
+
+    #[Test]
+    public function it_tests_pattern_against_content(): void
+    {
+        $pattern = SpamPattern::create([
+            'name' => 'Keyword Test',
+            'pattern_type' => PatternType::KEYWORD->value,
+            'pattern' => 'viagra',
+            'action' => PatternAction::BLOCK->value,
+        ]);
+
+        $result = $pattern->testPattern('This content contains viagra spam');
+
+        $this->assertIsArray($result);
+        $this->assertArrayHasKey('matches', $result);
+        $this->assertArrayHasKey('processing_time_ms', $result);
+        $this->assertArrayHasKey('pattern_type', $result);
+        $this->assertTrue($result['matches']);
+    }
+
+    #[Test]
+    public function it_optimizes_pattern_performance(): void
+    {
+        $pattern = SpamPattern::create([
+            'name' => 'Test Pattern',
+            'pattern_type' => PatternType::KEYWORD->value,
+            'pattern' => 'test',
+            'action' => PatternAction::BLOCK->value,
+            'accuracy_rate' => 0.95,
+            'processing_time_ms' => 3,
+            'priority' => 5,
+            'match_count' => 100, // Needed for effectiveness calculation
+        ]);
+
+        $originalPriority = $pattern->priority;
+        $pattern->optimizePattern();
+
+        $this->assertGreaterThan($originalPriority, $pattern->fresh()->priority);
+    }
+
+    #[Test]
+    public function it_gets_performance_category(): void
+    {
+        $excellentPattern = SpamPattern::create([
+            'name' => 'Excellent Pattern',
+            'pattern_type' => PatternType::KEYWORD->value,
+            'pattern' => 'test',
+            'action' => PatternAction::BLOCK->value,
+            'accuracy_rate' => 0.95,
+            'processing_time_ms' => 2,
+            'match_count' => 100,
+            'false_positive_count' => 2,
+        ]);
+
+        $this->assertEquals('excellent', $excellentPattern->getPerformanceCategory());
+    }
+
+    #[Test]
+    public function it_records_match_statistics(): void
+    {
+        $pattern = SpamPattern::create([
+            'name' => 'Test Pattern',
+            'pattern_type' => PatternType::KEYWORD->value,
+            'pattern' => 'test',
+            'action' => PatternAction::BLOCK->value,
+            'match_count' => 10,
+            'false_positive_count' => 1,
+        ]);
+
+        $originalMatchCount = $pattern->match_count;
+        $originalFalsePositiveCount = $pattern->false_positive_count;
+
+        $pattern->recordMatch(true);
+        $pattern->recordMatch(false); // False positive
+
+        $this->assertEquals($originalMatchCount + 2, $pattern->fresh()->match_count);
+        $this->assertEquals($originalFalsePositiveCount + 1, $pattern->fresh()->false_positive_count);
+    }
+
+    #[Test]
+    public function it_gets_pattern_type_description(): void
+    {
+        $pattern = SpamPattern::create([
+            'name' => 'Test Pattern',
+            'pattern_type' => PatternType::KEYWORD->value,
+            'pattern' => 'test',
+            'action' => PatternAction::BLOCK->value,
+        ]);
+
+        $description = $pattern->getPatternTypeDescription();
+        $this->assertIsString($description);
+        $this->assertNotEmpty($description);
+    }
+
+    #[Test]
+    public function it_checks_if_prevents_submission(): void
+    {
+        $blockingPattern = SpamPattern::create([
+            'name' => 'Blocking Pattern',
+            'pattern_type' => PatternType::KEYWORD->value,
+            'pattern' => 'test',
+            'action' => PatternAction::BLOCK->value,
+        ]);
+
+        $flaggingPattern = SpamPattern::create([
+            'name' => 'Flagging Pattern',
+            'pattern_type' => PatternType::KEYWORD->value,
+            'pattern' => 'test',
+            'action' => PatternAction::FLAG->value,
+        ]);
+
+        $this->assertTrue($blockingPattern->preventsSubmission());
+        $this->assertFalse($flaggingPattern->preventsSubmission());
     }
 }

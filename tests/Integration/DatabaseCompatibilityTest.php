@@ -2,16 +2,15 @@
 
 namespace JTD\FormSecurity\Tests\Integration;
 
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use JTD\FormSecurity\Models\BlockedSubmission;
-use JTD\FormSecurity\Models\IpReputation;
-use JTD\FormSecurity\Models\SpamPattern;
-use JTD\FormSecurity\Models\GeoLite2Location;
 use JTD\FormSecurity\Models\GeoLite2IpBlock;
+use JTD\FormSecurity\Models\GeoLite2Location;
+use JTD\FormSecurity\Models\IpReputation;
 use JTD\FormSecurity\Tests\TestCase;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 #[Group('sprint-002')]
 #[Group('epic-001')]
@@ -25,15 +24,15 @@ class DatabaseCompatibilityTest extends TestCase
     public function database_schema_uses_compatible_column_types(): void
     {
         // Test that our schema uses column types compatible across databases
-        
+
         // Check blocked_submissions table
         $this->assertTrue(Schema::hasTable('blocked_submissions'));
-        
+
         // Verify key columns exist and can handle expected data
         $this->assertTrue(Schema::hasColumn('blocked_submissions', 'ip_address'));
         $this->assertTrue(Schema::hasColumn('blocked_submissions', 'latitude'));
         $this->assertTrue(Schema::hasColumn('blocked_submissions', 'longitude'));
-        
+
         // Test inserting data with various formats
         DB::table('blocked_submissions')->insert([
             'form_identifier' => 'compatibility-test',
@@ -46,9 +45,9 @@ class DatabaseCompatibilityTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        
+
         $this->assertDatabaseHas('blocked_submissions', [
-            'form_identifier' => 'compatibility-test'
+            'form_identifier' => 'compatibility-test',
         ]);
     }
 
@@ -59,9 +58,9 @@ class DatabaseCompatibilityTest extends TestCase
         $jsonData = [
             'pattern_matches' => ['viagra', 'casino'],
             'confidence' => 0.85,
-            'source' => 'automated'
+            'source' => 'automated',
         ];
-        
+
         DB::table('blocked_submissions')->insert([
             'form_identifier' => 'json-test',
             'ip_address' => '192.168.1.200',
@@ -73,11 +72,11 @@ class DatabaseCompatibilityTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        
+
         $record = DB::table('blocked_submissions')
             ->where('form_identifier', 'json-test')
             ->first();
-        
+
         $this->assertNotNull($record);
         $decodedDetails = json_decode($record->block_details, true);
         $this->assertEquals($jsonData, $decodedDetails);
@@ -88,10 +87,10 @@ class DatabaseCompatibilityTest extends TestCase
     {
         // Test enum-like functionality (using string columns with validation)
         $validReasons = ['spam_pattern', 'ip_reputation', 'rate_limit', 'geolocation', 'honeypot', 'custom_rule'];
-        
+
         foreach ($validReasons as $reason) {
             DB::table('blocked_submissions')->insert([
-                'form_identifier' => 'enum-test-' . $reason,
+                'form_identifier' => 'enum-test-'.$reason,
                 'ip_address' => '10.0.0.1',
                 'block_reason' => $reason,
                 'risk_score' => 50,
@@ -100,12 +99,12 @@ class DatabaseCompatibilityTest extends TestCase
                 'updated_at' => now(),
             ]);
         }
-        
+
         $count = DB::table('blocked_submissions')
             ->whereIn('block_reason', $validReasons)
             ->where('form_identifier', 'like', 'enum-test-%')
             ->count();
-        
+
         $this->assertEquals(count($validReasons), $count);
     }
 
@@ -121,7 +120,7 @@ class DatabaseCompatibilityTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        
+
         DB::table('geolite2_locations')->insert([
             'geoname_id' => 888888,
             'locale_code' => 'en',
@@ -132,15 +131,15 @@ class DatabaseCompatibilityTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        
+
         $reputation = DB::table('ip_reputation')
             ->where('ip_address', '203.0.113.1')
             ->first();
-        
+
         $location = DB::table('geolite2_locations')
             ->where('geoname_id', 888888)
             ->first();
-        
+
         $this->assertNotNull($reputation);
         $this->assertNotNull($location);
         $this->assertEquals(0.3333, $reputation->block_rate);
@@ -158,7 +157,7 @@ class DatabaseCompatibilityTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        
+
         // Insert child record with foreign key reference
         DB::table('geolite2_ipv4_blocks')->insert([
             'network' => '198.51.100.0/24',
@@ -168,14 +167,14 @@ class DatabaseCompatibilityTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        
+
         // Verify the relationship works
         $result = DB::table('geolite2_ipv4_blocks')
             ->join('geolite2_locations', 'geolite2_ipv4_blocks.geoname_id', '=', 'geolite2_locations.geoname_id')
             ->where('geolite2_ipv4_blocks.network', '198.51.100.0/24')
             ->select('geolite2_locations.country_name')
             ->first();
-        
+
         $this->assertNotNull($result);
         $this->assertEquals('Canada', $result->country_name);
     }
@@ -186,7 +185,7 @@ class DatabaseCompatibilityTest extends TestCase
         // Test large integer values for IP ranges
         $largeStartInt = 3232235776; // 192.168.1.0 as integer
         $largeEndInt = 3232236031;   // 192.168.1.255 as integer
-        
+
         DB::table('geolite2_ipv4_blocks')->insert([
             'network' => '192.168.1.0/24',
             'network_start_integer' => $largeStartInt,
@@ -194,11 +193,11 @@ class DatabaseCompatibilityTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        
+
         $record = DB::table('geolite2_ipv4_blocks')
             ->where('network', '192.168.1.0/24')
             ->first();
-        
+
         $this->assertNotNull($record);
         $this->assertEquals($largeStartInt, $record->network_start_integer);
         $this->assertEquals($largeEndInt, $record->network_last_integer);
@@ -209,7 +208,7 @@ class DatabaseCompatibilityTest extends TestCase
     {
         // Test text columns can handle large content
         $largeText = str_repeat('This is a test spam message with lots of content. ', 100);
-        
+
         DB::table('spam_patterns')->insert([
             'name' => 'Large Content Test',
             'pattern_type' => 'phrase',
@@ -222,11 +221,11 @@ class DatabaseCompatibilityTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        
+
         $record = DB::table('spam_patterns')
             ->where('name', 'Large Content Test')
             ->first();
-        
+
         $this->assertNotNull($record);
         $this->assertEquals($largeText, $record->pattern);
     }
@@ -235,7 +234,7 @@ class DatabaseCompatibilityTest extends TestCase
     public function timestamp_columns_work_consistently(): void
     {
         $testTime = now();
-        
+
         DB::table('blocked_submissions')->insert([
             'form_identifier' => 'timestamp-test',
             'ip_address' => '192.0.2.1',
@@ -245,11 +244,11 @@ class DatabaseCompatibilityTest extends TestCase
             'created_at' => $testTime,
             'updated_at' => $testTime,
         ]);
-        
+
         $record = DB::table('blocked_submissions')
             ->where('form_identifier', 'timestamp-test')
             ->first();
-        
+
         $this->assertNotNull($record);
         // Verify timestamp was stored and retrieved correctly
         $this->assertNotNull($record->blocked_at);
@@ -273,11 +272,11 @@ class DatabaseCompatibilityTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        
+
         $record = DB::table('ip_reputation')
             ->where('ip_address', '192.0.2.100')
             ->first();
-        
+
         $this->assertNotNull($record);
         $this->assertTrue((bool) $record->is_tor);
         $this->assertFalse((bool) $record->is_proxy);

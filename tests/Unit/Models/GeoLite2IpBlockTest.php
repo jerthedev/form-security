@@ -19,12 +19,12 @@
 
 namespace JTD\FormSecurity\Tests\Unit\Models;
 
+use Carbon\Carbon;
 use JTD\FormSecurity\Models\GeoLite2IpBlock;
 use JTD\FormSecurity\Models\GeoLite2Location;
 use JTD\FormSecurity\Tests\TestCase;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
-use Carbon\Carbon;
 
 #[Group('sprint-002')]
 #[Group('epic-001')]
@@ -119,7 +119,7 @@ class GeoLite2IpBlockTest extends TestCase
 
         $this->assertInstanceOf(GeoLite2Location::class, $ipBlock->location);
         $this->assertEquals('United States', $ipBlock->location->country_name);
-        
+
         $this->assertInstanceOf(GeoLite2Location::class, $ipBlock->registeredCountry);
         $this->assertEquals('Canada', $ipBlock->registeredCountry->country_name);
     }
@@ -140,13 +140,13 @@ class GeoLite2IpBlockTest extends TestCase
         ]);
 
         $block = GeoLite2IpBlock::containingIp('192.168.1.100')->first();
-        
+
         $this->assertNotNull($block);
         $this->assertEquals('192.168.1.0/24', $block->network);
         $this->assertTrue($block->containsIp('192.168.1.100'));
 
         $block2 = GeoLite2IpBlock::containingIp('10.0.50.25')->first();
-        
+
         $this->assertNotNull($block2);
         $this->assertEquals('10.0.0.0/16', $block2->network);
         $this->assertTrue($block2->containsIp('10.0.50.25'));
@@ -217,7 +217,7 @@ class GeoLite2IpBlockTest extends TestCase
         $this->assertCount(1, $proxyBlocks);
         $this->assertCount(1, $satelliteBlocks);
         $this->assertCount(1, $anycastBlocks);
-        
+
         $this->assertTrue($proxyBlocks->first()->is_anonymous_proxy);
         $this->assertTrue($satelliteBlocks->first()->is_satellite_provider);
         $this->assertTrue($anycastBlocks->first()->is_anycast);
@@ -284,7 +284,7 @@ class GeoLite2IpBlockTest extends TestCase
         $this->assertTrue($ipBlock->containsIp('192.168.1.0'));   // Start of range
         $this->assertTrue($ipBlock->containsIp('192.168.1.100')); // Middle of range
         $this->assertTrue($ipBlock->containsIp('192.168.1.255')); // End of range
-        
+
         $this->assertFalse($ipBlock->containsIp('192.168.0.255')); // Just before range
         $this->assertFalse($ipBlock->containsIp('192.168.2.0'));   // Just after range
         $this->assertFalse($ipBlock->containsIp('10.0.0.1'));      // Completely different

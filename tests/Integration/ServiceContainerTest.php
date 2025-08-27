@@ -77,14 +77,14 @@ class ServiceContainerTest extends TestCase
     {
         // Test that dependencies are injected correctly
         $formSecurityService = $this->app->make(FormSecurityContract::class);
-        
+
         // Use reflection to verify dependencies
         $reflection = new \ReflectionClass($formSecurityService);
         $constructor = $reflection->getConstructor();
-        
+
         $this->assertNotNull($constructor);
         $parameters = $constructor->getParameters();
-        
+
         // FormSecurityService should have config and spamDetector dependencies
         $this->assertCount(2, $parameters);
         $this->assertEquals('config', $parameters[0]->getName());
@@ -113,12 +113,12 @@ class ServiceContainerTest extends TestCase
             $config = $this->app->make(ConfigurationContract::class);
             $formSecurity = $this->app->make(FormSecurityContract::class);
             $spamDetector = $this->app->make(SpamDetectionContract::class);
-            
+
             $this->assertNotNull($config);
             $this->assertNotNull($formSecurity);
             $this->assertNotNull($spamDetector);
         } catch (\Exception $e) {
-            $this->fail('Circular dependency detected: ' . $e->getMessage());
+            $this->fail('Circular dependency detected: '.$e->getMessage());
         }
     }
 
@@ -126,19 +126,19 @@ class ServiceContainerTest extends TestCase
     public function container_resolves_conditional_services(): void
     {
         // Test conditional service registration
-        
+
         // By default, optional services should not be bound
         $this->assertFalse($this->app->bound('form-security.ai-analyzer'));
         $this->assertFalse($this->app->bound('form-security.geolocation'));
-        
+
         // Enable features
         config(['form-security.features.ai_analysis' => true]);
         config(['form-security.features.geolocation' => true]);
-        
+
         // Re-register service provider
         $serviceProvider = new FormSecurityServiceProvider($this->app);
         $serviceProvider->register();
-        
+
         // Services should now be conditionally registered based on config
         $this->assertTrue(config('form-security.features.ai_analysis'));
         $this->assertTrue(config('form-security.features.geolocation'));
@@ -148,10 +148,10 @@ class ServiceContainerTest extends TestCase
     public function container_handles_service_resolution_errors(): void
     {
         // Test graceful handling of service resolution errors
-        
+
         // Create a new container without our service provider
-        $freshContainer = new Container();
-        
+        $freshContainer = new Container;
+
         try {
             $freshContainer->make(FormSecurityContract::class);
             $this->fail('Expected exception for unbound service');
@@ -164,20 +164,20 @@ class ServiceContainerTest extends TestCase
     public function container_maintains_laravel_service_integrity(): void
     {
         // Test that our services don't interfere with Laravel's core services
-        
+
         $laravelConfig = $this->app->make('config');
         $this->assertInstanceOf(ConfigRepository::class, $laravelConfig);
-        
+
         $cache = $this->app->make('cache');
         $this->assertNotNull($cache);
-        
+
         $log = $this->app->make('log');
         $this->assertNotNull($log);
-        
+
         // Our services should coexist with Laravel services
         $ourConfig = $this->app->make(ConfigurationContract::class);
         $this->assertInstanceOf(ConfigurationContract::class, $ourConfig);
-        
+
         // They should be different instances
         $this->assertNotSame($laravelConfig, $ourConfig);
     }
@@ -187,17 +187,17 @@ class ServiceContainerTest extends TestCase
     {
         // Test service resolution performance
         $startTime = microtime(true);
-        
+
         // Resolve services multiple times
         for ($i = 0; $i < 100; $i++) {
             $this->app->make(ConfigurationContract::class);
             $this->app->make(FormSecurityContract::class);
             $this->app->make(SpamDetectionContract::class);
         }
-        
+
         $endTime = microtime(true);
         $processingTime = $endTime - $startTime;
-        
+
         // Service resolution should be fast (under 50ms for 100 resolutions)
         $this->assertPerformanceRequirement($processingTime, 'service resolution (100x)');
     }
@@ -207,11 +207,11 @@ class ServiceContainerTest extends TestCase
     {
         // Test deferred service provider functionality
         $serviceProvider = new FormSecurityServiceProvider($this->app);
-        
+
         // Check if services are provided
         $providedServices = $serviceProvider->provides();
         $this->assertNotEmpty($providedServices);
-        
+
         // All provided services should be resolvable
         foreach ($providedServices as $service) {
             if (class_exists($service) || interface_exists($service)) {
@@ -225,18 +225,18 @@ class ServiceContainerTest extends TestCase
     public function container_validates_service_contracts(): void
     {
         // Test that resolved services implement their contracts correctly
-        
+
         $configService = $this->app->make(ConfigurationContract::class);
         $this->assertInstanceOf(ConfigurationContract::class, $configService);
-        
+
         // Test contract methods are available
         $this->assertTrue(method_exists($configService, 'get'));
         $this->assertTrue(method_exists($configService, 'set'));
         $this->assertTrue(method_exists($configService, 'isFeatureEnabled'));
-        
+
         $formSecurityService = $this->app->make(FormSecurityContract::class);
         $this->assertInstanceOf(FormSecurityContract::class, $formSecurityService);
-        
+
         $spamDetectionService = $this->app->make(SpamDetectionContract::class);
         $this->assertInstanceOf(SpamDetectionContract::class, $spamDetectionService);
     }
@@ -246,15 +246,15 @@ class ServiceContainerTest extends TestCase
     {
         // Test complex dependency chains
         $formSecurityService = $this->app->make(FormSecurityContract::class);
-        
+
         // FormSecurityService depends on ConfigurationContract and SpamDetectionContract
         // Both should be properly injected
         $this->assertInstanceOf(FormSecurityContract::class, $formSecurityService);
-        
+
         // Test that the service can perform its functions (indicating dependencies are working)
         $data = $this->createSampleFormData();
         $result = $formSecurityService->analyzeSubmission($data);
-        
+
         $this->assertValidAnalysisStructure($result);
     }
 
@@ -263,17 +263,17 @@ class ServiceContainerTest extends TestCase
     {
         // Test memory efficiency of service resolution
         $memoryBefore = memory_get_usage(true);
-        
+
         // Resolve services multiple times
         for ($i = 0; $i < 50; $i++) {
             $this->app->make(ConfigurationContract::class);
             $this->app->make(FormSecurityContract::class);
             $this->app->make(SpamDetectionContract::class);
         }
-        
+
         $memoryAfter = memory_get_usage(true);
         $memoryUsed = ($memoryAfter - $memoryBefore) / 1024 / 1024; // Convert to MB
-        
+
         // Memory usage should be minimal due to singleton pattern
         $this->assertLessThan(1.0, $memoryUsed, 'Service resolution should not consume excessive memory');
     }

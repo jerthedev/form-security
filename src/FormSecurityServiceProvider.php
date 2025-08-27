@@ -7,6 +7,8 @@ namespace JTD\FormSecurity;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 use JTD\FormSecurity\Contracts\ConfigurationContract;
+use JTD\FormSecurity\Contracts\ConfigurationManagerInterface;
+use JTD\FormSecurity\Contracts\ConfigurationValidatorInterface;
 use JTD\FormSecurity\Contracts\FormSecurityContract;
 use JTD\FormSecurity\Contracts\SpamDetectionContract;
 
@@ -26,8 +28,11 @@ class FormSecurityServiceProvider extends ServiceProvider
      */
     public array $singletons = [
         ConfigurationContract::class => Services\ConfigurationService::class,
+        ConfigurationManagerInterface::class => Services\ConfigurationManager::class,
+        ConfigurationValidatorInterface::class => Services\ConfigurationValidator::class,
         FormSecurityContract::class => Services\FormSecurityService::class,
         SpamDetectionContract::class => Services\SpamDetectionService::class,
+        Services\FeatureToggleService::class => Services\FeatureToggleService::class,
     ];
 
     /**
@@ -75,8 +80,11 @@ class FormSecurityServiceProvider extends ServiceProvider
     {
         return [
             ConfigurationContract::class,
+            ConfigurationManagerInterface::class,
+            ConfigurationValidatorInterface::class,
             FormSecurityContract::class,
             SpamDetectionContract::class,
+            Services\FeatureToggleService::class,
             'form-security',
             'form-security.config',
             'form-security.spam-detector',
@@ -118,6 +126,9 @@ class FormSecurityServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 Console\Commands\ImportGeoLite2Command::class,
+                Console\Commands\ConfigurationPublishCommand::class,
+                Console\Commands\ConfigurationValidateCommand::class,
+                Console\Commands\FeatureToggleCommand::class,
             ]);
         }
     }
@@ -136,8 +147,11 @@ class FormSecurityServiceProvider extends ServiceProvider
      */
     protected function bootEventListeners(): void
     {
-        // Event listeners will be registered here
-        // when we implement the event system
+        // Register configuration event listeners
+        $this->app['events']->listen(
+            Events\ConfigurationChanged::class,
+            Listeners\InvalidateConfigurationCache::class
+        );
     }
 
     /**

@@ -7,25 +7,25 @@ declare(strict_types=1);
  *
  * EPIC: EPIC-001-foundation-infrastructure
  * SPEC: SPEC-019-geolite2-database-management
- * SPRINT: Sprint-002-core-foundation-service-provider-database
- * TICKET: 1021-database-model-tests
+ * SPRINT: Sprint-003-models-configuration-management
+ * TICKET: 1012-model-classes-relationships
  *
  * Description: Eloquent model for GeoLite2 IP block ranges with efficient IP lookup
  * capabilities and geolocation mapping for the JTD-FormSecurity package.
  *
  * @see docs/Planning/Epics/EPIC-001-foundation-infrastructure.md
  * @see docs/Planning/Specs/Specialized-Features/SPEC-019-geolite2-database-management.md
- * @see docs/Planning/Sprints/002-core-foundation-service-provider-database.md
- * @see docs/Planning/Tickets/Foundation-Infrastructure/Test-Implementation/1021-database-model-tests.md
+ * @see docs/Planning/Sprints/003-models-configuration-management.md
+ * @see docs/Planning/Tickets/Foundation-Infrastructure/Implementation/1012-model-classes-relationships.md
  */
 
 namespace JTD\FormSecurity\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use JTD\FormSecurity\Casts\CoordinatesCast;
+use JTD\FormSecurity\Casts\IpRangeCast;
 
 /**
  * GeoLite2IpBlock Model
@@ -53,10 +53,8 @@ use Carbon\Carbon;
  * @property Carbon $created_at
  * @property Carbon $updated_at
  */
-class GeoLite2IpBlock extends Model
+class GeoLite2IpBlock extends BaseModel
 {
-    use HasFactory;
-
     /**
      * The table associated with the model.
      */
@@ -100,6 +98,8 @@ class GeoLite2IpBlock extends Model
         'latitude' => 'decimal:8',
         'longitude' => 'decimal:8',
         'metadata' => 'array',
+        'ip_range' => IpRangeCast::class,
+        'coordinates' => CoordinatesCast::class,
         'data_updated_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
@@ -111,6 +111,22 @@ class GeoLite2IpBlock extends Model
     public function location(): BelongsTo
     {
         return $this->belongsTo(GeoLite2Location::class, 'geoname_id', 'geoname_id');
+    }
+
+    /**
+     * Relationship: Registered country location
+     */
+    public function registeredCountryLocation(): BelongsTo
+    {
+        return $this->belongsTo(GeoLite2Location::class, 'registered_country_geoname_id', 'geoname_id');
+    }
+
+    /**
+     * Relationship: Represented country location
+     */
+    public function representedCountryLocation(): BelongsTo
+    {
+        return $this->belongsTo(GeoLite2Location::class, 'represented_country_geoname_id', 'geoname_id');
     }
 
     /**
@@ -135,9 +151,9 @@ class GeoLite2IpBlock extends Model
     public function scopeContainingIp(Builder $query, string $ipAddress): Builder
     {
         $ipInteger = ip2long($ipAddress);
-        
+
         return $query->where('network_start_integer', '<=', $ipInteger)
-                    ->where('network_last_integer', '>=', $ipInteger);
+            ->where('network_last_integer', '>=', $ipInteger);
     }
 
     /**
@@ -204,7 +220,7 @@ class GeoLite2IpBlock extends Model
         float $maxLng
     ): Builder {
         return $query->whereBetween('latitude', [$minLat, $maxLat])
-                    ->whereBetween('longitude', [$minLng, $maxLng]);
+            ->whereBetween('longitude', [$minLng, $maxLng]);
     }
 
     /**
@@ -224,13 +240,89 @@ class GeoLite2IpBlock extends Model
     }
 
     /**
+     * Query scope: Filter by accuracy radius
+     */
+    public function scopeByAccuracyRadius(Builder $query, int $maxRadius): Builder
+    {
+        return $query->where('accuracy_radius', '<=', $maxRadius);
+    }
+
+    /**
+     * Query scope: High accuracy blocks
+     */
+    public function scopeHighAccuracy(Builder $query): Builder
+    {
+        return $query->where('accuracy_radius', '<=', 50);
+    }
+
+    /**
+     * Query scope: Special network types (proxy, satellite, anycast)
+     */
+    public function scopeSpecialNetworks(Builder $query): Builder
+    {
+        return $query->where(function ($q) {
+            $q->where('is_anonymous_proxy', true)
+                ->orWhere('is_satellite_provider', true)
+                ->orWhere('is_anycast', true);
+        });
+    }
+
+    /**
+     * Query scope: Standard networks (non-special)
+     */
+    public function scopeStandardNetworks(Builder $query): Builder
+    {
+        return $query->where('is_anonymous_proxy', false)
+            ->where('is_satellite_provider', false)
+            ->where('is_anycast', false);
+    }
+
+    /**
+     * Query scope: Filter by network size (CIDR range)
+     */
+    public function scopeByNetworkSize(Builder $query, int $minSize, ?int $maxSize = null): Builder
+    {
+        $query = $query->whereRaw('(network_last_integer - network_start_integer + 1) >= ?', [$minSize]);
+
+        if ($maxSize !== null) {
+            $query = $query->whereRaw('(network_last_integer - network_start_integer + 1) <= ?', [$maxSize]);
+        }
+
+        return $query;
+    }
+
+    /**
+     * Query scope: Large networks (more than 1000 IPs)
+     */
+    public function scopeLargeNetworks(Builder $query): Builder
+    {
+        return $query->whereRaw('(network_last_integer - network_start_integer + 1) > 1000');
+    }
+
+    /**
+     * Query scope: Small networks (less than 256 IPs)
+     */
+    public function scopeSmallNetworks(Builder $query): Builder
+    {
+        return $query->whereRaw('(network_last_integer - network_start_integer + 1) < 256');
+    }
+
+    /**
+     * Query scope: Filter by data version
+     */
+    public function scopeByDataVersion(Builder $query, string $version): Builder
+    {
+        return $query->where('data_version', $version);
+    }
+
+    /**
      * Check if an IP address is within this block
      */
     public function containsIp(string $ipAddress): bool
     {
         $ipInteger = ip2long($ipAddress);
-        
-        return $ipInteger >= $this->network_start_integer && 
+
+        return $ipInteger >= $this->network_start_integer &&
                $ipInteger <= $this->network_last_integer;
     }
 
@@ -248,6 +340,7 @@ class GeoLite2IpBlock extends Model
     public function getCidrPrefix(): int
     {
         $networkSize = $this->getNetworkSize();
+
         return 32 - (int) log($networkSize, 2);
     }
 
@@ -272,8 +365,8 @@ class GeoLite2IpBlock extends Model
      */
     public function isSpecialNetwork(): bool
     {
-        return $this->is_anonymous_proxy || 
-               $this->is_satellite_provider || 
+        return $this->is_anonymous_proxy ||
+               $this->is_satellite_provider ||
                $this->is_anycast;
     }
 
@@ -283,19 +376,19 @@ class GeoLite2IpBlock extends Model
     public function getNetworkTypeDescription(): string
     {
         $types = [];
-        
+
         if ($this->is_anonymous_proxy) {
             $types[] = 'Anonymous Proxy';
         }
-        
+
         if ($this->is_satellite_provider) {
             $types[] = 'Satellite Provider';
         }
-        
+
         if ($this->is_anycast) {
             $types[] = 'Anycast';
         }
-        
+
         return empty($types) ? 'Standard' : implode(', ', $types);
     }
 
@@ -304,7 +397,7 @@ class GeoLite2IpBlock extends Model
      */
     public function hasCoordinates(): bool
     {
-        return !is_null($this->latitude) && !is_null($this->longitude);
+        return ! is_null($this->latitude) && ! is_null($this->longitude);
     }
 
     /**
@@ -312,7 +405,7 @@ class GeoLite2IpBlock extends Model
      */
     public function getCoordinates(): ?array
     {
-        if (!$this->hasCoordinates()) {
+        if (! $this->hasCoordinates()) {
             return null;
         }
 
@@ -335,7 +428,7 @@ class GeoLite2IpBlock extends Model
             'size' => $this->getNetworkSize(),
             'cidr_prefix' => $this->getCidrPrefix(),
             'type' => $this->getNetworkTypeDescription(),
-            'has_location' => !is_null($this->geoname_id),
+            'has_location' => ! is_null($this->geoname_id),
             'has_coordinates' => $this->hasCoordinates(),
         ];
     }
@@ -346,5 +439,108 @@ class GeoLite2IpBlock extends Model
     public static function findByIp(string $ipAddress): ?self
     {
         return static::containingIp($ipAddress)->first();
+    }
+
+    /**
+     * Get network type classification
+     */
+    public function getNetworkClassification(): string
+    {
+        return match (true) {
+            $this->is_anonymous_proxy => 'anonymous_proxy',
+            $this->is_satellite_provider => 'satellite',
+            $this->is_anycast => 'anycast',
+            default => 'standard',
+        };
+    }
+
+    /**
+     * Check if IP block has valid coordinates
+     */
+    public function hasValidCoordinates(): bool
+    {
+        return ! is_null($this->latitude) &&
+               ! is_null($this->longitude) &&
+               $this->latitude >= -90 && $this->latitude <= 90 &&
+               $this->longitude >= -180 && $this->longitude <= 180;
+    }
+
+    /**
+     * Get IP block summary for analytics
+     */
+    public function getBlockSummary(): array
+    {
+        return [
+            'network' => $this->network,
+            'size' => $this->getNetworkSize(),
+            'classification' => $this->getNetworkClassification(),
+            'is_special' => $this->isSpecialNetwork(),
+            'has_location' => ! is_null($this->geoname_id),
+            'has_coordinates' => $this->hasValidCoordinates(),
+            'postal_code' => $this->postal_code,
+            'accuracy_radius' => $this->accuracy_radius,
+            'data_version' => $this->data_version,
+            'last_updated' => $this->data_updated_at?->toDateTimeString(),
+        ];
+    }
+
+    /**
+     * Find IP blocks within a specific geographic area
+     */
+    public static function findInGeographicArea(float $centerLat, float $centerLon, float $radiusKm, int $limit = 100): \Illuminate\Database\Eloquent\Collection
+    {
+        // Using approximate bounding box for initial filtering
+        $latRange = $radiusKm / 111; // Approximate km per degree latitude
+        $lonRange = $radiusKm / (111 * cos(deg2rad($centerLat))); // Adjust for longitude
+
+        return static::query()
+            ->whereBetween('latitude', [$centerLat - $latRange, $centerLat + $latRange])
+            ->whereBetween('longitude', [$centerLon - $lonRange, $centerLon + $lonRange])
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->limit($limit)
+            ->get();
+    }
+
+    /**
+     * Get statistics for IP blocks by network type
+     */
+    public static function getNetworkTypeStatistics(): array
+    {
+        return [
+            'total_blocks' => static::count(),
+            'anonymous_proxy_blocks' => static::where('is_anonymous_proxy', true)->count(),
+            'satellite_blocks' => static::where('is_satellite_provider', true)->count(),
+            'anycast_blocks' => static::where('is_anycast', true)->count(),
+            'standard_blocks' => static::where('is_anonymous_proxy', false)
+                ->where('is_satellite_provider', false)
+                ->where('is_anycast', false)
+                ->count(),
+            'blocks_with_location' => static::whereNotNull('geoname_id')->count(),
+            'blocks_with_coordinates' => static::whereNotNull('latitude')
+                ->whereNotNull('longitude')
+                ->count(),
+        ];
+    }
+
+    /**
+     * Validate IP address format and convert to integer
+     */
+    public static function ipToInteger(string $ipAddress): ?int
+    {
+        $ip = filter_var($ipAddress, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4);
+        if ($ip === false) {
+            return null;
+        }
+
+        return ip2long($ip);
+    }
+
+    /**
+     * Convert integer back to IP address
+     */
+    public static function integerToIp(int $ipInteger): string
+    {
+        return long2ip($ipInteger);
     }
 }

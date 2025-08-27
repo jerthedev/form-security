@@ -19,9 +19,8 @@
 
 namespace JTD\FormSecurity\Tests\Unit;
 
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use JTD\FormSecurity\Tests\TestCase;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
@@ -58,7 +57,7 @@ class MigrationTest extends TestCase
             'block_reason', 'block_details', 'form_data_hash', 'form_field_count',
             'country_code', 'region', 'city', 'latitude', 'longitude', 'timezone',
             'isp', 'organization', 'risk_score', 'is_tor', 'is_proxy', 'is_vpn',
-            'blocked_at', 'session_id', 'fingerprint', 'metadata', 'created_at', 'updated_at'
+            'blocked_at', 'session_id', 'fingerprint', 'metadata', 'created_at', 'updated_at',
         ]));
     }
 
@@ -73,7 +72,7 @@ class MigrationTest extends TestCase
             'first_seen', 'last_seen', 'last_blocked',
             'threat_sources', 'threat_categories', 'notes',
             'cache_expires_at', 'is_whitelisted', 'is_blacklisted',
-            'metadata', 'created_at', 'updated_at'
+            'metadata', 'created_at', 'updated_at',
         ]));
     }
 
@@ -88,7 +87,7 @@ class MigrationTest extends TestCase
             'risk_score', 'action', 'action_config', 'match_count', 'false_positive_count',
             'accuracy_rate', 'processing_time_ms', 'is_active', 'is_learning', 'priority',
             'last_matched', 'categories', 'languages', 'regions', 'version', 'source',
-            'last_updated_at', 'updated_by', 'metadata', 'created_at', 'updated_at'
+            'last_updated_at', 'updated_by', 'metadata', 'created_at', 'updated_at',
         ]));
     }
 
@@ -100,7 +99,7 @@ class MigrationTest extends TestCase
             'country_iso_code', 'country_name', 'subdivision_1_iso_code', 'subdivision_1_name',
             'subdivision_2_iso_code', 'subdivision_2_name', 'city_name', 'metro_code',
             'time_zone', 'latitude', 'longitude', 'accuracy_radius', 'is_in_european_union',
-            'postal_codes', 'data_updated_at', 'data_version', 'metadata', 'created_at', 'updated_at'
+            'postal_codes', 'data_updated_at', 'data_version', 'metadata', 'created_at', 'updated_at',
         ]));
     }
 
@@ -112,7 +111,7 @@ class MigrationTest extends TestCase
             'geoname_id', 'registered_country_geoname_id', 'represented_country_geoname_id',
             'is_anonymous_proxy', 'is_satellite_provider', 'is_anycast',
             'postal_code', 'latitude', 'longitude', 'accuracy_radius',
-            'data_updated_at', 'data_version', 'metadata', 'created_at', 'updated_at'
+            'data_updated_at', 'data_version', 'metadata', 'created_at', 'updated_at',
         ]));
     }
 
@@ -288,7 +287,7 @@ class MigrationTest extends TestCase
         foreach ($results as $result) {
             $columns[$result->name] = [
                 'type' => strtolower($result->type),
-                'nullable' => !$result->notnull,
+                'nullable' => ! $result->notnull,
                 'default' => $result->dflt_value,
             ];
         }

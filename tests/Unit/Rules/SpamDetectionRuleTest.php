@@ -35,15 +35,15 @@ class SpamDetectionRuleTest extends TestCase
     #[Test]
     public function rule_passes_for_clean_content(): void
     {
-        $rule = new SpamDetectionRule();
+        $rule = new SpamDetectionRule;
         $failed = false;
-        
+
         $fail = function ($message) use (&$failed) {
             $failed = true;
         };
-        
+
         $rule->validate('message', 'This is a clean message', $fail);
-        
+
         $this->assertFalse($failed);
     }
 
@@ -71,14 +71,14 @@ class SpamDetectionRuleTest extends TestCase
     {
         $rule = new SpamDetectionRule(['threshold' => 0.9]); // Very high threshold
         $failed = false;
-        
+
         $fail = function ($message) use (&$failed) {
             $failed = true;
         };
-        
+
         $spamContent = 'Buy cheap viagra online!';
         $rule->validate('message', $spamContent, $fail);
-        
+
         // Should pass with high threshold
         $this->assertFalse($failed);
     }
@@ -86,20 +86,20 @@ class SpamDetectionRuleTest extends TestCase
     #[Test]
     public function rule_ignores_non_string_values(): void
     {
-        $rule = new SpamDetectionRule();
+        $rule = new SpamDetectionRule;
         $failed = false;
-        
+
         $fail = function ($message) use (&$failed) {
             $failed = true;
         };
-        
+
         // Test with various non-string values
         $rule->validate('field', 123, $fail);
         $this->assertFalse($failed);
-        
+
         $rule->validate('field', [], $fail);
         $this->assertFalse($failed);
-        
+
         $rule->validate('field', null, $fail);
         $this->assertFalse($failed);
     }
@@ -107,17 +107,17 @@ class SpamDetectionRuleTest extends TestCase
     #[Test]
     public function rule_uses_default_threshold(): void
     {
-        $rule = new SpamDetectionRule();
+        $rule = new SpamDetectionRule;
         $failed = false;
-        
+
         $fail = function ($message) use (&$failed) {
             $failed = true;
         };
-        
+
         // Test that default threshold (0.7) is used
         $moderateSpamContent = 'Buy cheap products online';
         $rule->validate('message', $moderateSpamContent, $fail);
-        
+
         // Result depends on spam detection algorithm, but rule should execute
         $this->assertIsBool($failed);
     }

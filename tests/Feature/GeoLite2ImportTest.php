@@ -19,13 +19,13 @@
 
 namespace JTD\FormSecurity\Tests\Feature;
 
-use JTD\FormSecurity\Models\GeoLite2Location;
+use Illuminate\Support\Facades\DB;
 use JTD\FormSecurity\Models\GeoLite2IpBlock;
+use JTD\FormSecurity\Models\GeoLite2Location;
 use JTD\FormSecurity\Services\GeoLite2ImportService;
 use JTD\FormSecurity\Tests\TestCase;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
-use Illuminate\Support\Facades\DB;
 
 #[Group('sprint-002')]
 #[Group('epic-001')]
@@ -37,17 +37,18 @@ use Illuminate\Support\Facades\DB;
 class GeoLite2ImportTest extends TestCase
 {
     private GeoLite2ImportService $importService;
+
     private string $testDataPath;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->importService = app(GeoLite2ImportService::class);
-        $this->testDataPath = __DIR__ . '/../storage/GeoLite2-City-CSV_20250722';
-        
+        $this->testDataPath = __DIR__.'/../storage/GeoLite2-City-CSV_20250722';
+
         // Ensure test data exists
-        if (!is_dir($this->testDataPath)) {
+        if (! is_dir($this->testDataPath)) {
             $this->markTestSkipped('GeoLite2 test data not available');
         }
     }
@@ -62,7 +63,7 @@ class GeoLite2ImportTest extends TestCase
         $testCsvContent .= "2643743,en,EU,Europe,GB,United Kingdom,ENG,England,GLA,Greater London,London,\"\",Europe/London,0\n";
         $testCsvContent .= "6167865,en,NA,North America,CA,Canada,ON,Ontario,\"\",\"\",Toronto,416,America/Toronto,0\n";
 
-        $testFile = sys_get_temp_dir() . '/test_locations.csv';
+        $testFile = sys_get_temp_dir().'/test_locations.csv';
         file_put_contents($testFile, $testCsvContent);
 
         // Import locations
@@ -95,7 +96,7 @@ class GeoLite2ImportTest extends TestCase
         $testLocationsContent .= "5128581,en,NA,\"North America\",US,\"United States\",NY,\"New York\",061,\"New York County\",\"New York\",501,\"America/New_York\",0\n";
         $testLocationsContent .= "2643743,en,EU,Europe,GB,\"United Kingdom\",ENG,England,GLA,\"Greater London\",London,,\"Europe/London\",0\n";
 
-        $testLocationsFile = sys_get_temp_dir() . '/test_locations.csv';
+        $testLocationsFile = sys_get_temp_dir().'/test_locations.csv';
         file_put_contents($testLocationsFile, $testLocationsContent);
         $this->importService->importLocations($testLocationsFile);
 
@@ -105,7 +106,7 @@ class GeoLite2ImportTest extends TestCase
         $testIpBlocksContent .= "2.0.0.0/24,2643743,2643743,,0,0,SW1A,51.5074,-0.1278,50,0\n";
         $testIpBlocksContent .= "3.0.0.0/24,,,5128581,1,0,,,,,1\n";
 
-        $testIpBlocksFile = sys_get_temp_dir() . '/test_ipblocks.csv';
+        $testIpBlocksFile = sys_get_temp_dir().'/test_ipblocks.csv';
         file_put_contents($testIpBlocksFile, $testIpBlocksContent);
 
         // Import IP blocks
@@ -146,8 +147,8 @@ class GeoLite2ImportTest extends TestCase
             $testIpBlocksContent .= "{$i}.0.0.0/24,{$i},{$i},,0,0,1000{$i},40.{$i},-74.{$i},100,0\n";
         }
 
-        $locationsFile = sys_get_temp_dir() . '/test_chunked_locations.csv';
-        $ipBlocksFile = sys_get_temp_dir() . '/test_chunked_ipblocks.csv';
+        $locationsFile = sys_get_temp_dir().'/test_chunked_locations.csv';
+        $ipBlocksFile = sys_get_temp_dir().'/test_chunked_ipblocks.csv';
         file_put_contents($locationsFile, $testLocationsContent);
         file_put_contents($ipBlocksFile, $testIpBlocksContent);
 
@@ -202,8 +203,8 @@ class GeoLite2ImportTest extends TestCase
         $testIpBlocksContent .= "2.0.0.0/24,200,200,,0,0,SW1A,51.5074,-0.1278,50,0\n";
         $testIpBlocksContent .= "3.0.0.0/24,,,100,1,0,,,,,1\n"; // Block without location but with represented country
 
-        $locationsFile = sys_get_temp_dir() . '/test_integrity_locations.csv';
-        $ipBlocksFile = sys_get_temp_dir() . '/test_integrity_ipblocks.csv';
+        $locationsFile = sys_get_temp_dir().'/test_integrity_locations.csv';
+        $ipBlocksFile = sys_get_temp_dir().'/test_integrity_ipblocks.csv';
         file_put_contents($locationsFile, $testLocationsContent);
         file_put_contents($ipBlocksFile, $testIpBlocksContent);
 
@@ -233,8 +234,8 @@ class GeoLite2ImportTest extends TestCase
         $blocksWithInvalidGeonameId = GeoLite2IpBlock::whereNotNull('geoname_id')
             ->whereNotExists(function ($query) {
                 $query->select(DB::raw(1))
-                      ->from('geolite2_locations')
-                      ->whereColumn('geolite2_locations.geoname_id', 'geolite2_ipv4_blocks.geoname_id');
+                    ->from('geolite2_locations')
+                    ->whereColumn('geolite2_locations.geoname_id', 'geolite2_ipv4_blocks.geoname_id');
             })->count();
 
         $this->assertEquals(0, $blocksWithInvalidGeonameId, 'All IP blocks with geoname_id should reference valid locations');
@@ -256,8 +257,8 @@ class GeoLite2ImportTest extends TestCase
         $testIpBlocksContent .= "8.8.8.0/24,300,300,,0,0,10001,40.7128,-74.0060,100,0\n";  // Contains 8.8.8.8
         $testIpBlocksContent .= "1.1.1.0/24,400,400,,0,0,SW1A,51.5074,-0.1278,50,0\n";    // Contains 1.1.1.1
 
-        $locationsFile = sys_get_temp_dir() . '/test_lookup_locations.csv';
-        $ipBlocksFile = sys_get_temp_dir() . '/test_lookup_ipblocks.csv';
+        $locationsFile = sys_get_temp_dir().'/test_lookup_locations.csv';
+        $ipBlocksFile = sys_get_temp_dir().'/test_lookup_ipblocks.csv';
         file_put_contents($locationsFile, $testLocationsContent);
         file_put_contents($ipBlocksFile, $testIpBlocksContent);
 
@@ -285,9 +286,9 @@ class GeoLite2ImportTest extends TestCase
                 );
 
                 // Verify location relationship
-                $this->assertNotNull($ipBlock->geoname_id, "Block should have geoname_id");
+                $this->assertNotNull($ipBlock->geoname_id, 'Block should have geoname_id');
                 $location = $ipBlock->location;
-                $this->assertNotNull($location, "Block should have associated location");
+                $this->assertNotNull($location, 'Block should have associated location');
                 $this->assertEquals($ipBlock->geoname_id, $location->geoname_id);
                 $this->assertEquals($testCase['expected_location'], $location->city_name);
             } else {
@@ -309,7 +310,7 @@ class GeoLite2ImportTest extends TestCase
             $testLocationsContent .= "{$i},en,NA,\"North America\",US,\"United States\",NY,\"New York\",061,\"New York County\",\"Test City {$i}\",501,\"America/New_York\",0\n";
         }
 
-        $locationsFile = sys_get_temp_dir() . '/test_performance_locations.csv';
+        $locationsFile = sys_get_temp_dir().'/test_performance_locations.csv';
         file_put_contents($locationsFile, $testLocationsContent);
 
         // Test import performance (should complete within reasonable time)
@@ -346,7 +347,7 @@ class GeoLite2ImportTest extends TestCase
         $testLocationsContent .= "500,en,NA,\"North America\",US,\"United States\",NY,\"New York\",061,\"New York County\",\"New York\",501,\"America/New_York\",0\n";
         $testLocationsContent .= "600,en,EU,Europe,GB,\"United Kingdom\",ENG,England,GLA,\"Greater London\",London,,\"Europe/London\",0\n";
 
-        $locationsFile = sys_get_temp_dir() . '/test_clear_locations.csv';
+        $locationsFile = sys_get_temp_dir().'/test_clear_locations.csv';
         file_put_contents($locationsFile, $testLocationsContent);
 
         // Initial import
@@ -383,8 +384,8 @@ class GeoLite2ImportTest extends TestCase
         $testIpBlocksContent .= "8.0.0.0/24,800,800,,0,0,SW1A,51.5074,-0.1278,50,0\n";
         $testIpBlocksContent .= "9.0.0.0/24,,,700,1,0,,,,,1\n";
 
-        $locationsFile = sys_get_temp_dir() . '/test_stats_locations.csv';
-        $ipBlocksFile = sys_get_temp_dir() . '/test_stats_ipblocks.csv';
+        $locationsFile = sys_get_temp_dir().'/test_stats_locations.csv';
+        $ipBlocksFile = sys_get_temp_dir().'/test_stats_ipblocks.csv';
         file_put_contents($locationsFile, $testLocationsContent);
         file_put_contents($ipBlocksFile, $testIpBlocksContent);
 

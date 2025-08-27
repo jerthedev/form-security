@@ -19,11 +19,14 @@
 
 namespace JTD\FormSecurity\Tests\Unit\Models;
 
+use Carbon\Carbon;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use JTD\FormSecurity\Enums\ReputationStatus;
+use JTD\FormSecurity\Models\BlockedSubmission;
 use JTD\FormSecurity\Models\IpReputation;
 use JTD\FormSecurity\Tests\TestCase;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
-use Carbon\Carbon;
 
 #[Group('sprint-002')]
 #[Group('epic-001')]
@@ -33,6 +36,8 @@ use Carbon\Carbon;
 #[Group('ip-reputation')]
 class IpReputationTest extends TestCase
 {
+    use RefreshDatabase;
+
     #[Test]
     public function it_can_create_ip_reputation_with_required_fields(): void
     {
@@ -45,7 +50,7 @@ class IpReputationTest extends TestCase
         $this->assertInstanceOf(IpReputation::class, $ipReputation);
         $this->assertEquals('192.168.1.100', $ipReputation->ip_address);
         $this->assertEquals(75, $ipReputation->reputation_score);
-        $this->assertEquals('neutral', $ipReputation->reputation_status);
+        $this->assertEquals(ReputationStatus::NEUTRAL, $ipReputation->reputation_status);
     }
 
     #[Test]
@@ -93,8 +98,8 @@ class IpReputationTest extends TestCase
         $this->assertTrue($ipReputation->is_tor);
         $this->assertFalse($ipReputation->is_proxy);
         $this->assertTrue($ipReputation->is_vpn);
-        $this->assertFalse((bool)$ipReputation->is_whitelisted);
-        $this->assertTrue((bool)$ipReputation->is_blacklisted);
+        $this->assertFalse((bool) $ipReputation->is_whitelisted);
+        $this->assertTrue((bool) $ipReputation->is_blacklisted);
     }
 
     #[Test]
@@ -134,8 +139,8 @@ class IpReputationTest extends TestCase
 
         $this->assertCount(1, $trusted);
         $this->assertCount(1, $malicious);
-        $this->assertEquals('trusted', $trusted->first()->reputation_status);
-        $this->assertEquals('malicious', $malicious->first()->reputation_status);
+        $this->assertEquals(ReputationStatus::TRUSTED, $trusted->first()->reputation_status);
+        $this->assertEquals(ReputationStatus::MALICIOUS, $malicious->first()->reputation_status);
     }
 
     #[Test]
@@ -190,7 +195,7 @@ class IpReputationTest extends TestCase
         $this->assertCount(1, $malicious);
         $this->assertCount(1, $suspicious);
         $this->assertCount(1, $trusted);
-        
+
         $this->assertEquals(25, $malicious->first()->reputation_score);
         $this->assertEquals(45, $suspicious->first()->reputation_score);
         $this->assertEquals(85, $trusted->first()->reputation_score);
@@ -255,14 +260,13 @@ class IpReputationTest extends TestCase
             'cache_expires_at' => now()->addHour(),
         ]);
 
-        $nullExpirationIp = IpReputation::create([
-            'ip_address' => '10.0.0.3',
-            'cache_expires_at' => null,
-        ]);
-
+        // Test the isExpired method logic directly since observer sets default cache_expires_at
         $this->assertTrue($expiredIp->isExpired());
         $this->assertFalse($activeIp->isExpired());
-        $this->assertTrue($nullExpirationIp->isExpired());
+
+        // Test null expiration logic by setting it directly
+        $expiredIp->cache_expires_at = null;
+        $this->assertTrue($expiredIp->isExpired());
     }
 
     #[Test]
@@ -321,7 +325,7 @@ class IpReputationTest extends TestCase
 
         foreach ($testCases as $index => $case) {
             $ip = IpReputation::create([
-                'ip_address' => '10.0.0.' . ($index + 10), // Use unique IP addresses
+                'ip_address' => '10.0.0.'.($index + 10), // Use unique IP addresses
                 'reputation_score' => $case['score'],
                 'is_blacklisted' => $case['blacklisted'],
                 'is_whitelisted' => $case['whitelisted'],
@@ -371,7 +375,7 @@ class IpReputationTest extends TestCase
 
         $this->assertEquals(11, $ip->submission_count);
         $this->assertEquals(2, $ip->blocked_count);
-        $this->assertEquals(round(2/11, 4), round((float)$ip->block_rate, 4));
+        $this->assertEquals(round(2 / 11, 4), round((float) $ip->block_rate, 4));
         $this->assertNotNull($ip->last_seen);
 
         // Test blocked submission
@@ -379,7 +383,7 @@ class IpReputationTest extends TestCase
 
         $this->assertEquals(12, $ip->submission_count);
         $this->assertEquals(3, $ip->blocked_count);
-        $this->assertEquals(round(3/12, 4), round((float)$ip->block_rate, 4));
+        $this->assertEquals(round(3 / 12, 4), round((float) $ip->block_rate, 4));
         $this->assertNotNull($ip->last_blocked);
     }
 
@@ -451,12 +455,14 @@ class IpReputationTest extends TestCase
         IpReputation::create([
             'ip_address' => '10.0.0.1',
             'submission_count' => 150,
+            'blocked_count' => 135, // 135/150 = 0.9
             'block_rate' => 0.9,
         ]);
 
         IpReputation::create([
             'ip_address' => '10.0.0.2',
             'submission_count' => 50,
+            'blocked_count' => 25, // 25/50 = 0.5
             'block_rate' => 0.5,
         ]);
 
@@ -468,5 +474,143 @@ class IpReputationTest extends TestCase
 
         $this->assertEquals(150, $highActivity->first()->submission_count);
         $this->assertEquals(0.9, $highBlockRate->first()->block_rate);
+    }
+
+    #[Test]
+    public function it_casts_reputation_status_to_enum(): void
+    {
+        $reputation = IpReputation::create([
+            'ip_address' => '10.0.0.1',
+            'reputation_score' => 50,
+            'reputation_status' => ReputationStatus::NEUTRAL->value,
+        ]);
+
+        $this->assertInstanceOf(ReputationStatus::class, $reputation->reputation_status);
+        $this->assertEquals(ReputationStatus::NEUTRAL, $reputation->reputation_status);
+    }
+
+    #[Test]
+    public function it_has_relationship_with_blocked_submissions(): void
+    {
+        $reputation = IpReputation::create([
+            'ip_address' => '192.168.1.100',
+            'reputation_score' => 50,
+            'reputation_status' => 'neutral',
+        ]);
+
+        $submission = BlockedSubmission::create([
+            'form_identifier' => 'test_form',
+            'ip_address' => '192.168.1.100',
+            'block_reason' => 'spam_pattern',
+            'blocked_at' => now(),
+        ]);
+
+        $this->assertTrue($reputation->blockedSubmissions->contains($submission));
+    }
+
+    #[Test]
+    public function it_updates_reputation_score_based_on_activity(): void
+    {
+        $reputation = IpReputation::create([
+            'ip_address' => '10.0.0.1',
+            'reputation_score' => 50,
+            'submission_count' => 150, // High volume to trigger score change
+            'blocked_count' => 135,
+            'block_rate' => 0.9, // High block rate should reduce score
+            'is_malware' => true,
+        ]);
+
+        $originalScore = $reputation->reputation_score;
+        $reputation->updateReputationScore();
+
+        $this->assertNotEquals($originalScore, $reputation->fresh()->reputation_score);
+    }
+
+    #[Test]
+    public function it_calculates_threat_intelligence_score(): void
+    {
+        $reputation = IpReputation::create([
+            'ip_address' => '10.0.0.1',
+            'is_malware' => true,
+            'is_botnet' => true,
+            'block_rate' => 0.8,
+            'submission_count' => 1500,
+        ]);
+
+        $threatScore = $reputation->calculateThreatIntelligenceScore();
+
+        $this->assertIsArray($threatScore);
+        $this->assertArrayHasKey('overall_threat_level', $threatScore);
+        $this->assertArrayHasKey('network_threat', $threatScore);
+        $this->assertArrayHasKey('behavioral_threat', $threatScore);
+        $this->assertGreaterThan(0, $threatScore['overall_threat_level']);
+    }
+
+    #[Test]
+    public function it_generates_reputation_summary(): void
+    {
+        $reputation = IpReputation::create([
+            'ip_address' => '192.168.1.100',
+            'reputation_score' => 75,
+            'reputation_status' => 'trusted',
+        ]);
+
+        $summary = $reputation->getReputationSummary();
+
+        $this->assertIsArray($summary);
+        $this->assertArrayHasKey('ip_address', $summary);
+        $this->assertArrayHasKey('reputation_score', $summary);
+        $this->assertArrayHasKey('reputation_status', $summary);
+        $this->assertArrayHasKey('allows_access', $summary);
+        $this->assertArrayHasKey('threat_intelligence', $summary);
+    }
+
+    #[Test]
+    public function it_checks_if_allows_access(): void
+    {
+        $trustedIp = IpReputation::create([
+            'ip_address' => '10.0.0.1',
+            'reputation_status' => ReputationStatus::TRUSTED->value,
+        ]);
+
+        $blockedIp = IpReputation::create([
+            'ip_address' => '10.0.0.2',
+            'reputation_status' => ReputationStatus::BLOCKED->value,
+        ]);
+
+        $this->assertTrue($trustedIp->allowsAccess());
+        $this->assertFalse($blockedIp->allowsAccess());
+    }
+
+    #[Test]
+    public function it_implements_cacheable_interface(): void
+    {
+        $reputation = IpReputation::create([
+            'ip_address' => '192.168.1.100',
+            'reputation_score' => 50,
+        ]);
+
+        $cacheKey = $reputation->getCacheKey();
+        $this->assertStringContainsString('ip_reputation:', $cacheKey);
+    }
+
+    #[Test]
+    public function it_scopes_by_network_type(): void
+    {
+        $torIp = IpReputation::create([
+            'ip_address' => '10.0.0.1',
+            'is_tor' => true,
+        ]);
+
+        $proxyIp = IpReputation::create([
+            'ip_address' => '10.0.0.2',
+            'is_proxy' => true,
+        ]);
+
+        $torIps = IpReputation::byNetworkType('tor')->get();
+        $proxyIps = IpReputation::byNetworkType('proxy')->get();
+
+        $this->assertTrue($torIps->contains($torIp));
+        $this->assertTrue($proxyIps->contains($proxyIp));
     }
 }

@@ -47,13 +47,13 @@ class SpamDetectionServiceTest extends TestCase
     {
         $data = $this->createSampleFormData();
         $result = $this->spamDetectionService->analyzeSpam($data);
-        
+
         $this->assertIsArray($result);
         $this->assertArrayHasKey('score', $result);
         $this->assertArrayHasKey('threats', $result);
         $this->assertArrayHasKey('details', $result);
         $this->assertArrayHasKey('timestamp', $result);
-        
+
         $this->assertIsFloat($result['score']);
         $this->assertIsArray($result['threats']);
         $this->assertIsArray($result['details']);
@@ -65,9 +65,9 @@ class SpamDetectionServiceTest extends TestCase
     {
         $data = $this->createSampleFormData();
         $context = ['submission_frequency' => 10, 'user_agent' => ''];
-        
+
         $result = $this->spamDetectionService->analyzeSpam($data, $context);
-        
+
         $this->assertIsArray($result);
         $this->assertContains('high_frequency_submission', $result['threats']);
         $this->assertContains('missing_user_agent', $result['threats']);
@@ -78,7 +78,7 @@ class SpamDetectionServiceTest extends TestCase
     {
         $cleanContent = 'This is a normal message from a legitimate user.';
         $score = $this->spamDetectionService->calculateSpamScore($cleanContent);
-        
+
         $this->assertIsFloat($score);
         $this->assertGreaterThanOrEqual(0.0, $score);
         $this->assertLessThanOrEqual(1.0, $score);
@@ -100,7 +100,7 @@ class SpamDetectionServiceTest extends TestCase
     {
         $shortContent = 'Hi';
         $score = $this->spamDetectionService->calculateSpamScore($shortContent);
-        
+
         $this->assertGreaterThanOrEqual(0.2, $score); // Should add 0.2 for short content
     }
 
@@ -109,7 +109,7 @@ class SpamDetectionServiceTest extends TestCase
     {
         $longContent = str_repeat('This is a very long message. ', 200); // > 5000 chars
         $score = $this->spamDetectionService->calculateSpamScore($longContent);
-        
+
         $this->assertGreaterThanOrEqual(0.3, $score); // Should add 0.3 for long content
     }
 
@@ -118,7 +118,7 @@ class SpamDetectionServiceTest extends TestCase
     {
         $contentWithLinks = 'Check out https://example1.com and https://example2.com and https://example3.com and https://example4.com';
         $score = $this->spamDetectionService->calculateSpamScore($contentWithLinks);
-        
+
         $this->assertGreaterThanOrEqual(0.3, $score); // Should add 0.3 for excessive links
     }
 
@@ -127,7 +127,7 @@ class SpamDetectionServiceTest extends TestCase
     {
         $capsContent = 'THIS IS ALL CAPS CONTENT WHICH LOOKS LIKE SPAM';
         $score = $this->spamDetectionService->calculateSpamScore($capsContent);
-        
+
         $this->assertGreaterThanOrEqual(0.2, $score); // Should add 0.2 for excessive caps
     }
 
@@ -136,10 +136,10 @@ class SpamDetectionServiceTest extends TestCase
     {
         $spamContent = 'Buy cheap viagra online!';
         $matches = $this->spamDetectionService->checkSpamPatterns($spamContent);
-        
+
         $this->assertIsArray($matches);
         $this->assertNotEmpty($matches);
-        
+
         $match = $matches[0];
         $this->assertArrayHasKey('pattern', $match);
         $this->assertArrayHasKey('match', $match);
@@ -151,10 +151,10 @@ class SpamDetectionServiceTest extends TestCase
     {
         // Set custom patterns
         config(['form-security.patterns.spam' => ['/\bcustom_spam\b/i' => 0.9]]);
-        
+
         $content = 'This contains custom_spam keyword';
         $matches = $this->spamDetectionService->checkSpamPatterns($content);
-        
+
         $this->assertNotEmpty($matches);
         $this->assertEquals(0.9, $matches[0]['confidence']);
     }
@@ -163,9 +163,9 @@ class SpamDetectionServiceTest extends TestCase
     public function check_rate_limit_allows_within_limits(): void
     {
         $identifier = 'test_user';
-        
+
         $result = $this->spamDetectionService->checkRateLimit($identifier);
-        
+
         $this->assertTrue($result);
     }
 
@@ -174,11 +174,11 @@ class SpamDetectionServiceTest extends TestCase
     {
         $identifier = 'test_user_blocked';
         $limits = ['max_attempts' => 2, 'window_minutes' => 60];
-        
+
         // First two attempts should pass
         $this->assertTrue($this->spamDetectionService->checkRateLimit($identifier, $limits));
         $this->assertTrue($this->spamDetectionService->checkRateLimit($identifier, $limits));
-        
+
         // Third attempt should be blocked
         $this->assertFalse($this->spamDetectionService->checkRateLimit($identifier, $limits));
     }
@@ -187,10 +187,10 @@ class SpamDetectionServiceTest extends TestCase
     public function check_rate_limit_uses_default_limits(): void
     {
         $identifier = 'test_default_limits';
-        
+
         // Should use default limits from config
         $result = $this->spamDetectionService->checkRateLimit($identifier);
-        
+
         $this->assertTrue($result);
     }
 
@@ -198,9 +198,9 @@ class SpamDetectionServiceTest extends TestCase
     public function update_spam_patterns_returns_true(): void
     {
         $patterns = ['/\bnew_spam_pattern\b/i' => 0.8];
-        
+
         $result = $this->spamDetectionService->updateSpamPatterns($patterns);
-        
+
         $this->assertTrue($result);
     }
 
@@ -208,14 +208,14 @@ class SpamDetectionServiceTest extends TestCase
     public function get_detection_stats_returns_statistics(): void
     {
         $stats = $this->spamDetectionService->getDetectionStats();
-        
+
         $this->assertIsArray($stats);
         $this->assertArrayHasKey('total_analyzed', $stats);
         $this->assertArrayHasKey('spam_detected', $stats);
         $this->assertArrayHasKey('false_positives', $stats);
         $this->assertArrayHasKey('average_processing_time', $stats);
         $this->assertArrayHasKey('patterns_count', $stats);
-        
+
         $this->assertIsInt($stats['total_analyzed']);
         $this->assertIsInt($stats['spam_detected']);
         $this->assertIsInt($stats['false_positives']);
@@ -230,9 +230,9 @@ class SpamDetectionServiceTest extends TestCase
         $reflection = new \ReflectionClass($service);
         $method = $reflection->getMethod('analyzeField');
         $method->setAccessible(true);
-        
+
         $result = $method->invoke($service, 'email', 'invalid-email');
-        
+
         $this->assertIsArray($result);
         $this->assertArrayHasKey('score', $result);
         $this->assertArrayHasKey('threats', $result);
@@ -247,9 +247,9 @@ class SpamDetectionServiceTest extends TestCase
         $reflection = new \ReflectionClass($service);
         $method = $reflection->getMethod('analyzeField');
         $method->setAccessible(true);
-        
+
         $result = $method->invoke($service, 'url', 'invalid-url');
-        
+
         $this->assertIsArray($result);
         $this->assertContains('invalid_url', $result['threats']);
         $this->assertGreaterThanOrEqual(0.2, $result['score']);
@@ -262,9 +262,9 @@ class SpamDetectionServiceTest extends TestCase
         $reflection = new \ReflectionClass($service);
         $method = $reflection->getMethod('analyzeField');
         $method->setAccessible(true);
-        
+
         $result = $method->invoke($service, 'email', 'valid@example.com');
-        
+
         $this->assertIsArray($result);
         $this->assertNotContains('invalid_email', $result['threats']);
     }
@@ -276,10 +276,10 @@ class SpamDetectionServiceTest extends TestCase
         $reflection = new \ReflectionClass($service);
         $method = $reflection->getMethod('analyzeContext');
         $method->setAccessible(true);
-        
+
         $context = ['submission_frequency' => 10];
         $result = $method->invoke($service, $context);
-        
+
         $this->assertIsArray($result);
         $this->assertArrayHasKey('score_adjustment', $result);
         $this->assertArrayHasKey('threats', $result);
@@ -294,10 +294,10 @@ class SpamDetectionServiceTest extends TestCase
         $reflection = new \ReflectionClass($service);
         $method = $reflection->getMethod('analyzeContext');
         $method->setAccessible(true);
-        
+
         $context = ['user_agent' => ''];
         $result = $method->invoke($service, $context);
-        
+
         $this->assertContains('missing_user_agent', $result['threats']);
         $this->assertGreaterThanOrEqual(0.1, $result['score_adjustment']);
     }
@@ -309,10 +309,10 @@ class SpamDetectionServiceTest extends TestCase
         $reflection = new \ReflectionClass($service);
         $method = $reflection->getMethod('analyzeContext');
         $method->setAccessible(true);
-        
+
         $context = ['submission_frequency' => 1, 'user_agent' => 'Mozilla/5.0'];
         $result = $method->invoke($service, $context);
-        
+
         $this->assertEquals(0.0, $result['score_adjustment']);
         $this->assertEmpty($result['threats']);
     }
@@ -321,11 +321,11 @@ class SpamDetectionServiceTest extends TestCase
     public function service_performance_meets_requirements(): void
     {
         $data = $this->createSpamFormData();
-        
+
         $startTime = microtime(true);
         $this->spamDetectionService->analyzeSpam($data);
         $endTime = microtime(true);
-        
+
         $processingTime = $endTime - $startTime;
         $this->assertPerformanceRequirement($processingTime, 'SpamDetectionService analysis');
     }

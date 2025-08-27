@@ -21,6 +21,7 @@ declare(strict_types=1);
 namespace JTD\FormSecurity\Tests;
 
 use JTD\FormSecurity\FormSecurityServiceProvider;
+use JTD\FormSecurity\Providers\ModelObserverServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 
 /**
@@ -54,6 +55,7 @@ abstract class TestCase extends Orchestra
     {
         return [
             FormSecurityServiceProvider::class,
+            ModelObserverServiceProvider::class,
         ];
     }
 
@@ -100,7 +102,17 @@ abstract class TestCase extends Orchestra
     protected function setUpDatabase(): void
     {
         // Load migrations for testing
-        $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
+        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+    }
+
+    /**
+     * Define database migrations.
+     *
+     * @return void
+     */
+    protected function defineDatabaseMigrations(): void
+    {
+        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
     }
 
     /**

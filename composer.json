@@ -42,7 +42,9 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "JTD\\FormSecurity\\Tests\\": "tests/"
+            "JTD\\FormSecurity\\Tests\\": "tests/",
+            "Database\\Factories\\": "database/factories/",
+            "Tests\\": "tests/"
         }
     },
     "extra": {

@@ -2,15 +2,14 @@
 
 namespace JTD\FormSecurity\Tests\Performance;
 
+use Illuminate\Support\Facades\DB;
 use JTD\FormSecurity\Models\BlockedSubmission;
+use JTD\FormSecurity\Models\GeoLite2IpBlock;
 use JTD\FormSecurity\Models\IpReputation;
 use JTD\FormSecurity\Models\SpamPattern;
-use JTD\FormSecurity\Models\GeoLite2Location;
-use JTD\FormSecurity\Models\GeoLite2IpBlock;
 use JTD\FormSecurity\Tests\TestCase;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
-use Illuminate\Support\Facades\DB;
 
 #[Group('sprint-002')]
 #[Group('epic-001')]
@@ -23,7 +22,7 @@ class DatabasePerformanceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Seed some test data for performance testing
         $this->seedTestData();
     }
@@ -32,7 +31,7 @@ class DatabasePerformanceTest extends TestCase
     public function blocked_submissions_insert_performance(): void
     {
         $startTime = microtime(true);
-        
+
         DB::table('blocked_submissions')->insert([
             'form_identifier' => 'contact-form',
             'ip_address' => '192.168.1.100',
@@ -44,11 +43,11 @@ class DatabasePerformanceTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        
+
         $processingTime = microtime(true) - $startTime;
-        
+
         // Assert performance requirement (100ms = 0.1 seconds)
-        $this->assertLessThan(0.1, $processingTime, 
+        $this->assertLessThan(0.1, $processingTime,
             "Blocked submissions insert took {$processingTime}s, should be < 0.1s");
     }
 
@@ -56,17 +55,17 @@ class DatabasePerformanceTest extends TestCase
     public function blocked_submissions_query_by_ip_performance(): void
     {
         $startTime = microtime(true);
-        
+
         $results = DB::table('blocked_submissions')
             ->where('ip_address', '192.168.1.1')
             ->where('blocked_at', '>=', now()->subDays(7))
             ->orderBy('blocked_at', 'desc')
             ->limit(100)
             ->get();
-        
+
         $processingTime = microtime(true) - $startTime;
-        
-        $this->assertLessThan(0.1, $processingTime, 
+
+        $this->assertLessThan(0.1, $processingTime,
             "IP-based query took {$processingTime}s, should be < 0.1s");
     }
 
@@ -74,17 +73,17 @@ class DatabasePerformanceTest extends TestCase
     public function blocked_submissions_analytics_query_performance(): void
     {
         $startTime = microtime(true);
-        
+
         $results = DB::table('blocked_submissions')
             ->select('block_reason', DB::raw('COUNT(*) as count'))
             ->where('blocked_at', '>=', now()->subDays(30))
             ->groupBy('block_reason')
             ->orderBy('count', 'desc')
             ->get();
-        
+
         $processingTime = microtime(true) - $startTime;
-        
-        $this->assertLessThan(0.1, $processingTime, 
+
+        $this->assertLessThan(0.1, $processingTime,
             "Analytics query took {$processingTime}s, should be < 0.1s");
     }
 
@@ -92,14 +91,14 @@ class DatabasePerformanceTest extends TestCase
     public function ip_reputation_lookup_performance(): void
     {
         $startTime = microtime(true);
-        
+
         $reputation = DB::table('ip_reputation')
             ->where('ip_address', '192.168.1.1')
             ->first();
-        
+
         $processingTime = microtime(true) - $startTime;
-        
-        $this->assertLessThan(0.1, $processingTime, 
+
+        $this->assertLessThan(0.1, $processingTime,
             "IP reputation lookup took {$processingTime}s, should be < 0.1s");
     }
 
@@ -107,16 +106,16 @@ class DatabasePerformanceTest extends TestCase
     public function spam_patterns_active_query_performance(): void
     {
         $startTime = microtime(true);
-        
+
         $patterns = DB::table('spam_patterns')
             ->where('is_active', true)
             ->orderBy('priority', 'asc')
             ->limit(50)
             ->get();
-        
+
         $processingTime = microtime(true) - $startTime;
-        
-        $this->assertLessThan(0.1, $processingTime, 
+
+        $this->assertLessThan(0.1, $processingTime,
             "Active spam patterns query took {$processingTime}s, should be < 0.1s");
     }
 
@@ -125,19 +124,19 @@ class DatabasePerformanceTest extends TestCase
     {
         // Convert IP to integer for range lookup
         $ipInteger = ip2long('192.168.1.100');
-        
+
         $startTime = microtime(true);
-        
+
         $location = DB::table('geolite2_ipv4_blocks')
             ->join('geolite2_locations', 'geolite2_ipv4_blocks.geoname_id', '=', 'geolite2_locations.geoname_id')
             ->where('geolite2_ipv4_blocks.network_start_integer', '<=', $ipInteger)
             ->where('geolite2_ipv4_blocks.network_last_integer', '>=', $ipInteger)
             ->select('geolite2_locations.country_name', 'geolite2_locations.city_name')
             ->first();
-        
+
         $processingTime = microtime(true) - $startTime;
-        
-        $this->assertLessThan(0.1, $processingTime, 
+
+        $this->assertLessThan(0.1, $processingTime,
             "GeoLite2 IP location lookup took {$processingTime}s, should be < 0.1s");
     }
 
@@ -148,7 +147,7 @@ class DatabasePerformanceTest extends TestCase
         for ($i = 0; $i < 100; $i++) {
             $data[] = [
                 'form_identifier' => 'bulk-test-form',
-                'ip_address' => '10.0.0.' . ($i % 255),
+                'ip_address' => '10.0.0.'.($i % 255),
                 'block_reason' => 'rate_limit',
                 'risk_score' => rand(1, 100),
                 'blocked_at' => now(),
@@ -156,15 +155,15 @@ class DatabasePerformanceTest extends TestCase
                 'updated_at' => now(),
             ];
         }
-        
+
         $startTime = microtime(true);
-        
+
         DB::table('blocked_submissions')->insert($data);
-        
+
         $processingTime = microtime(true) - $startTime;
-        
+
         // Bulk insert should be efficient even for 100 records
-        $this->assertLessThan(0.5, $processingTime, 
+        $this->assertLessThan(0.5, $processingTime,
             "Bulk insert of 100 records took {$processingTime}s, should be < 0.5s");
     }
 
@@ -172,12 +171,12 @@ class DatabasePerformanceTest extends TestCase
     public function concurrent_write_simulation(): void
     {
         $startTime = microtime(true);
-        
+
         // Simulate multiple concurrent writes
         for ($i = 0; $i < 10; $i++) {
             DB::table('blocked_submissions')->insert([
-                'form_identifier' => 'concurrent-test-' . $i,
-                'ip_address' => '172.16.0.' . $i,
+                'form_identifier' => 'concurrent-test-'.$i,
+                'ip_address' => '172.16.0.'.$i,
                 'block_reason' => 'spam_pattern',
                 'risk_score' => 50,
                 'blocked_at' => now(),
@@ -185,10 +184,10 @@ class DatabasePerformanceTest extends TestCase
                 'updated_at' => now(),
             ]);
         }
-        
+
         $processingTime = microtime(true) - $startTime;
-        
-        $this->assertLessThan(0.2, $processingTime, 
+
+        $this->assertLessThan(0.2, $processingTime,
             "10 concurrent writes took {$processingTime}s, should be < 0.2s");
     }
 
@@ -246,8 +245,8 @@ class DatabasePerformanceTest extends TestCase
         // Insert some blocked submissions for testing
         for ($i = 1; $i <= 50; $i++) {
             DB::table('blocked_submissions')->insertOrIgnore([
-                'form_identifier' => 'test-form-' . ($i % 5),
-                'ip_address' => '192.168.1.' . $i,
+                'form_identifier' => 'test-form-'.($i % 5),
+                'ip_address' => '192.168.1.'.$i,
                 'block_reason' => ['spam_pattern', 'rate_limit', 'ip_reputation'][($i % 3)],
                 'risk_score' => rand(1, 100),
                 'blocked_at' => now()->subMinutes(rand(1, 1440)),
@@ -310,8 +309,8 @@ class DatabasePerformanceTest extends TestCase
         // Create multiple models manually (factories not configured yet)
         for ($i = 0; $i < 50; $i++) {
             BlockedSubmission::create([
-                'form_identifier' => 'test_form_' . $i,
-                'ip_address' => '192.168.1.' . ($i % 255),
+                'form_identifier' => 'test_form_'.$i,
+                'ip_address' => '192.168.1.'.($i % 255),
                 'block_reason' => 'spam_pattern',
                 'risk_score' => rand(0, 100),
                 'blocked_at' => now(),
@@ -320,7 +319,7 @@ class DatabasePerformanceTest extends TestCase
 
         for ($i = 0; $i < 25; $i++) {
             IpReputation::create([
-                'ip_address' => '10.0.1.' . $i,
+                'ip_address' => '10.0.1.'.$i,
                 'reputation_score' => rand(0, 100),
                 'reputation_status' => 'neutral',
             ]);
@@ -361,8 +360,8 @@ class DatabasePerformanceTest extends TestCase
         // Perform memory-intensive operations (create models manually)
         for ($i = 0; $i < 100; $i++) {
             BlockedSubmission::create([
-                'form_identifier' => 'memory_test_' . $i,
-                'ip_address' => '172.16.1.' . ($i % 255),
+                'form_identifier' => 'memory_test_'.$i,
+                'ip_address' => '172.16.1.'.($i % 255),
                 'block_reason' => 'spam_pattern',
                 'risk_score' => rand(0, 100),
                 'blocked_at' => now(),
@@ -371,7 +370,7 @@ class DatabasePerformanceTest extends TestCase
 
         for ($i = 0; $i < 50; $i++) {
             IpReputation::create([
-                'ip_address' => '10.0.2.' . $i,
+                'ip_address' => '10.0.2.'.$i,
                 'reputation_score' => rand(0, 100),
                 'reputation_status' => 'neutral',
             ]);

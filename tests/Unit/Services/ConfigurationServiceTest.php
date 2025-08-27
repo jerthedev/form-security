@@ -46,7 +46,7 @@ class ConfigurationServiceTest extends TestCase
     {
         $enabled = $this->configService->get('enabled');
         $this->assertIsBool($enabled);
-        
+
         $threshold = $this->configService->get('spam_threshold');
         $this->assertIsFloat($threshold);
     }
@@ -71,7 +71,7 @@ class ConfigurationServiceTest extends TestCase
     {
         $result = $this->configService->set('test_key', 'test_value');
         $this->assertTrue($result);
-        
+
         $value = $this->configService->get('test_key');
         $this->assertEquals('test_value', $value);
     }
@@ -82,11 +82,11 @@ class ConfigurationServiceTest extends TestCase
         // Test enabled feature
         $this->configService->set('features.test_feature', true);
         $this->assertTrue($this->configService->isFeatureEnabled('test_feature'));
-        
+
         // Test disabled feature
         $this->configService->set('features.disabled_feature', false);
         $this->assertFalse($this->configService->isFeatureEnabled('disabled_feature'));
-        
+
         // Test non-existent feature (should default to false)
         $this->assertFalse($this->configService->isFeatureEnabled('non_existent'));
     }
@@ -98,7 +98,7 @@ class ConfigurationServiceTest extends TestCase
         $result = $this->configService->toggleFeature('toggle_test', true);
         $this->assertTrue($result);
         $this->assertTrue($this->configService->isFeatureEnabled('toggle_test'));
-        
+
         // Disable feature
         $result = $this->configService->toggleFeature('toggle_test', false);
         $this->assertTrue($result);
@@ -114,7 +114,7 @@ class ConfigurationServiceTest extends TestCase
             'spam_threshold' => 0.7,
             'rate_limit' => [],
         ];
-        
+
         $result = $this->configService->validateConfig($validConfig);
         $this->assertTrue($result['valid']);
         $this->assertEmpty($result['errors']);
@@ -127,7 +127,7 @@ class ConfigurationServiceTest extends TestCase
             'enabled' => true,
             // Missing required fields
         ];
-        
+
         $result = $this->configService->validateConfig($invalidConfig);
         $this->assertFalse($result['valid']);
         $this->assertNotEmpty($result['errors']);
@@ -143,7 +143,7 @@ class ConfigurationServiceTest extends TestCase
             'spam_threshold' => 'not_float', // Should be float
             'rate_limit' => [],
         ];
-        
+
         $result = $this->configService->validateConfig($invalidConfig);
         $this->assertFalse($result['valid']);
         $this->assertArrayHasKey('enabled', $result['errors']);
@@ -159,9 +159,9 @@ class ConfigurationServiceTest extends TestCase
         $this->configService->set('features.feature3', true);
         $this->configService->set('features.feature4', 0); // Falsy
         $this->configService->set('features.feature5', 1); // Truthy
-        
+
         $enabledFeatures = $this->configService->getEnabledFeatures();
-        
+
         $this->assertContains('feature1', $enabledFeatures);
         $this->assertNotContains('feature2', $enabledFeatures);
         $this->assertContains('feature3', $enabledFeatures);
@@ -180,12 +180,12 @@ class ConfigurationServiceTest extends TestCase
     public function get_schema_returns_configuration_schema(): void
     {
         $schema = $this->configService->getSchema();
-        
+
         $this->assertIsArray($schema);
         $this->assertArrayHasKey('enabled', $schema);
         $this->assertArrayHasKey('features', $schema);
         $this->assertArrayHasKey('spam_threshold', $schema);
-        
+
         // Check schema structure
         $this->assertEquals('boolean', $schema['enabled']['type']);
         $this->assertTrue($schema['enabled']['required']);
@@ -198,7 +198,7 @@ class ConfigurationServiceTest extends TestCase
         $reflection = new \ReflectionClass($service);
         $method = $reflection->getMethod('validateType');
         $method->setAccessible(true);
-        
+
         $this->assertTrue($method->invoke($service, true, 'boolean'));
         $this->assertTrue($method->invoke($service, false, 'boolean'));
         $this->assertFalse($method->invoke($service, 'true', 'boolean'));
@@ -212,7 +212,7 @@ class ConfigurationServiceTest extends TestCase
         $reflection = new \ReflectionClass($service);
         $method = $reflection->getMethod('validateType');
         $method->setAccessible(true);
-        
+
         $this->assertTrue($method->invoke($service, 123, 'integer'));
         $this->assertTrue($method->invoke($service, 0, 'integer'));
         $this->assertFalse($method->invoke($service, 123.45, 'integer'));
@@ -226,7 +226,7 @@ class ConfigurationServiceTest extends TestCase
         $reflection = new \ReflectionClass($service);
         $method = $reflection->getMethod('validateType');
         $method->setAccessible(true);
-        
+
         $this->assertTrue($method->invoke($service, 123.45, 'float'));
         $this->assertTrue($method->invoke($service, 123, 'float')); // Integers are valid floats
         $this->assertFalse($method->invoke($service, '123.45', 'float'));
@@ -239,7 +239,7 @@ class ConfigurationServiceTest extends TestCase
         $reflection = new \ReflectionClass($service);
         $method = $reflection->getMethod('validateType');
         $method->setAccessible(true);
-        
+
         $this->assertTrue($method->invoke($service, 'test', 'string'));
         $this->assertTrue($method->invoke($service, '', 'string'));
         $this->assertFalse($method->invoke($service, 123, 'string'));
@@ -252,7 +252,7 @@ class ConfigurationServiceTest extends TestCase
         $reflection = new \ReflectionClass($service);
         $method = $reflection->getMethod('validateType');
         $method->setAccessible(true);
-        
+
         $this->assertTrue($method->invoke($service, [], 'array'));
         $this->assertTrue($method->invoke($service, [1, 2, 3], 'array'));
         $this->assertFalse($method->invoke($service, 'array', 'array'));
@@ -265,7 +265,7 @@ class ConfigurationServiceTest extends TestCase
         $reflection = new \ReflectionClass($service);
         $method = $reflection->getMethod('validateType');
         $method->setAccessible(true);
-        
+
         $this->assertTrue($method->invoke($service, 'anything', 'mixed'));
         $this->assertTrue($method->invoke($service, 123, 'mixed'));
         $this->assertTrue($method->invoke($service, [], 'mixed'));
@@ -279,7 +279,7 @@ class ConfigurationServiceTest extends TestCase
         $reflection = new \ReflectionClass($service);
         $method = $reflection->getMethod('validateType');
         $method->setAccessible(true);
-        
+
         $this->assertFalse($method->invoke($service, 'test', 'unknown_type'));
     }
 }

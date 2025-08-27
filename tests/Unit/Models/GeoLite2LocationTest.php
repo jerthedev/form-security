@@ -19,12 +19,12 @@
 
 namespace JTD\FormSecurity\Tests\Unit\Models;
 
-use JTD\FormSecurity\Models\GeoLite2Location;
+use Carbon\Carbon;
 use JTD\FormSecurity\Models\GeoLite2IpBlock;
+use JTD\FormSecurity\Models\GeoLite2Location;
 use JTD\FormSecurity\Tests\TestCase;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
-use Carbon\Carbon;
 
 #[Group('sprint-002')]
 #[Group('epic-001')]
@@ -118,7 +118,7 @@ class GeoLite2LocationTest extends TestCase
         ]);
 
         $ipBlocks = $location->ipBlocks;
-        
+
         $this->assertCount(2, $ipBlocks);
         $this->assertEquals('192.168.1.0/24', $ipBlocks->first()->network);
         $this->assertEquals(555555, $ipBlocks->first()->geoname_id);

@@ -19,11 +19,15 @@
 
 namespace JTD\FormSecurity\Tests\Unit\Models;
 
+use Carbon\Carbon;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use JTD\FormSecurity\Enums\BlockReason;
+use JTD\FormSecurity\Enums\RiskLevel;
 use JTD\FormSecurity\Models\BlockedSubmission;
+use JTD\FormSecurity\Models\IpReputation;
 use JTD\FormSecurity\Tests\TestCase;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
-use Carbon\Carbon;
 
 #[Group('sprint-002')]
 #[Group('epic-001')]
@@ -33,6 +37,8 @@ use Carbon\Carbon;
 #[Group('blocked-submission')]
 class BlockedSubmissionTest extends TestCase
 {
+    use RefreshDatabase;
+
     #[Test]
     public function it_can_create_blocked_submission_with_required_fields(): void
     {
@@ -47,7 +53,7 @@ class BlockedSubmissionTest extends TestCase
         $this->assertInstanceOf(BlockedSubmission::class, $submission);
         $this->assertEquals('contact_form', $submission->form_identifier);
         $this->assertEquals('192.168.1.100', $submission->ip_address);
-        $this->assertEquals('spam_pattern', $submission->block_reason);
+        $this->assertEquals(BlockReason::SPAM_PATTERN, $submission->block_reason);
         $this->assertEquals(85, $submission->risk_score);
         $this->assertInstanceOf(Carbon::class, $submission->blocked_at);
     }
@@ -79,9 +85,9 @@ class BlockedSubmissionTest extends TestCase
         $this->assertIsBool($submission->is_vpn);
         $this->assertInstanceOf(Carbon::class, $submission->blocked_at);
         $this->assertIsArray($submission->metadata);
-        
-        $this->assertEquals('40.71280000', (string)$submission->latitude);
-        $this->assertEquals('-74.00600000', (string)$submission->longitude);
+
+        $this->assertEquals('40.71280000', (string) $submission->latitude);
+        $this->assertEquals('-74.00600000', (string) $submission->longitude);
         $this->assertEquals(75, $submission->risk_score);
         $this->assertEquals(5, $submission->form_field_count);
         $this->assertTrue($submission->is_tor);
@@ -103,7 +109,7 @@ class BlockedSubmissionTest extends TestCase
         ]);
 
         $array = $submission->toArray();
-        
+
         $this->assertArrayNotHasKey('form_data_hash', $array);
         $this->assertArrayNotHasKey('fingerprint', $array);
         $this->assertArrayHasKey('form_identifier', $array);
@@ -158,8 +164,8 @@ class BlockedSubmissionTest extends TestCase
 
         $this->assertCount(1, $spamBlocks);
         $this->assertCount(1, $rateLimitBlocks);
-        $this->assertEquals('spam_pattern', $spamBlocks->first()->block_reason);
-        $this->assertEquals('rate_limit', $rateLimitBlocks->first()->block_reason);
+        $this->assertEquals(BlockReason::SPAM_PATTERN, $spamBlocks->first()->block_reason);
+        $this->assertEquals(BlockReason::RATE_LIMIT, $rateLimitBlocks->first()->block_reason);
     }
 
     #[Test]
@@ -353,11 +359,11 @@ class BlockedSubmissionTest extends TestCase
     public function get_risk_level_method_returns_correct_levels(): void
     {
         $testCases = [
-            ['score' => 95, 'expected' => 'critical'],
-            ['score' => 85, 'expected' => 'high'],
-            ['score' => 55, 'expected' => 'medium'],
-            ['score' => 25, 'expected' => 'low'],
-            ['score' => 5, 'expected' => 'minimal'],
+            ['score' => 95, 'expected' => RiskLevel::CRITICAL],
+            ['score' => 85, 'expected' => RiskLevel::HIGH],
+            ['score' => 55, 'expected' => RiskLevel::MEDIUM],
+            ['score' => 25, 'expected' => RiskLevel::LOW],
+            ['score' => 5, 'expected' => RiskLevel::MINIMAL],
         ];
 
         foreach ($testCases as $case) {
@@ -445,5 +451,203 @@ class BlockedSubmissionTest extends TestCase
 
         $this->assertIsString($timeElapsed);
         $this->assertStringContainsString('ago', $timeElapsed);
+    }
+
+    #[Test]
+    public function it_casts_block_reason_to_enum(): void
+    {
+        $submission = BlockedSubmission::create([
+            'form_identifier' => 'test_form',
+            'ip_address' => '192.168.1.100',
+            'block_reason' => BlockReason::SPAM_PATTERN->value,
+            'blocked_at' => now(),
+        ]);
+
+        $this->assertInstanceOf(BlockReason::class, $submission->block_reason);
+        $this->assertEquals(BlockReason::SPAM_PATTERN, $submission->block_reason);
+    }
+
+    #[Test]
+    public function it_has_relationship_with_ip_reputation(): void
+    {
+        $testIp = '172.17.'.((int) (microtime(true) * 1000) % 255 + 1).'.'.mt_rand(1, 254); // Generate unique IP
+        $submission = BlockedSubmission::create([
+            'form_identifier' => 'test_form',
+            'ip_address' => $testIp,
+            'block_reason' => 'spam_pattern',
+            'blocked_at' => now(),
+        ]);
+
+        // Get the IP reputation created by the observer
+        $ipReputation = IpReputation::where('ip_address', $testIp)->first();
+        $this->assertNotNull($ipReputation, 'IP reputation should be created by observer');
+
+        // Refresh the submission to ensure relationship is loaded
+        $submission->refresh();
+
+        $this->assertInstanceOf(IpReputation::class, $submission->ipReputation);
+        $this->assertEquals($ipReputation->id, $submission->ipReputation->id);
+    }
+
+    #[Test]
+    public function it_can_get_or_create_ip_reputation(): void
+    {
+        $uniqueIp = '172.16.'.((int) (microtime(true) * 1000) % 255 + 1).'.'.mt_rand(1, 254); // Generate a unique IP from private range
+        $submission = BlockedSubmission::create([
+            'form_identifier' => 'test_form',
+            'ip_address' => $uniqueIp,
+            'block_reason' => 'spam_pattern',
+            'blocked_at' => now(),
+        ]);
+
+        // The observer should have already created an IP reputation
+        $this->assertDatabaseHas('ip_reputation', [
+            'ip_address' => $uniqueIp,
+        ]);
+
+        $ipReputation = $submission->getOrCreateIpReputation();
+
+        $this->assertInstanceOf(IpReputation::class, $ipReputation);
+        $this->assertEquals($uniqueIp, $ipReputation->ip_address);
+        $this->assertDatabaseHas('ip_reputation', [
+            'ip_address' => $uniqueIp,
+        ]);
+    }
+
+    #[Test]
+    public function it_calculates_risk_level_correctly(): void
+    {
+        $highRiskSubmission = BlockedSubmission::create([
+            'form_identifier' => 'test_form',
+            'ip_address' => '192.168.1.100',
+            'block_reason' => 'spam_pattern',
+            'risk_score' => 95,
+            'blocked_at' => now(),
+        ]);
+
+        $lowRiskSubmission = BlockedSubmission::create([
+            'form_identifier' => 'test_form',
+            'ip_address' => '192.168.1.101',
+            'block_reason' => 'rate_limit',
+            'risk_score' => 25,
+            'blocked_at' => now(),
+        ]);
+
+        $this->assertEquals(RiskLevel::CRITICAL, $highRiskSubmission->getRiskLevel());
+        $this->assertEquals(RiskLevel::LOW, $lowRiskSubmission->getRiskLevel());
+    }
+
+    #[Test]
+    public function it_detects_automated_threats(): void
+    {
+        $honeypotSubmission = BlockedSubmission::create([
+            'form_identifier' => 'test_form',
+            'ip_address' => '192.168.1.100',
+            'block_reason' => BlockReason::HONEYPOT->value,
+            'blocked_at' => now(),
+        ]);
+
+        $geoSubmission = BlockedSubmission::create([
+            'form_identifier' => 'test_form',
+            'ip_address' => '192.168.1.101',
+            'block_reason' => BlockReason::GEOLOCATION->value,
+            'blocked_at' => now(),
+        ]);
+
+        $this->assertTrue($honeypotSubmission->isAutomatedThreat());
+        $this->assertFalse($geoSubmission->isAutomatedThreat());
+    }
+
+    #[Test]
+    public function it_scopes_by_risk_level(): void
+    {
+        BlockedSubmission::create([
+            'form_identifier' => 'test_form',
+            'ip_address' => '192.168.1.100',
+            'block_reason' => 'spam_pattern',
+            'risk_score' => 95,
+            'blocked_at' => now(),
+        ]);
+
+        BlockedSubmission::create([
+            'form_identifier' => 'test_form',
+            'ip_address' => '192.168.1.101',
+            'block_reason' => 'rate_limit',
+            'risk_score' => 25,
+            'blocked_at' => now(),
+        ]);
+
+        $criticalSubmissions = BlockedSubmission::byRiskLevel(RiskLevel::CRITICAL)->get();
+        $lowSubmissions = BlockedSubmission::byRiskLevel(RiskLevel::LOW)->get();
+
+        $this->assertCount(1, $criticalSubmissions);
+        $this->assertCount(1, $lowSubmissions);
+    }
+
+    #[Test]
+    public function it_scopes_suspicious_networks(): void
+    {
+        $torSubmission = BlockedSubmission::create([
+            'form_identifier' => 'test_form',
+            'ip_address' => '192.168.1.100',
+            'block_reason' => 'ip_reputation',
+            'is_tor' => true,
+            'blocked_at' => now(),
+        ]);
+
+        $normalSubmission = BlockedSubmission::create([
+            'form_identifier' => 'test_form',
+            'ip_address' => '192.168.1.101',
+            'block_reason' => 'rate_limit',
+            'is_tor' => false,
+            'is_proxy' => false,
+            'is_vpn' => false,
+            'blocked_at' => now(),
+        ]);
+
+        $suspiciousSubmissions = BlockedSubmission::suspiciousNetworks()->get();
+
+        $this->assertTrue($suspiciousSubmissions->contains($torSubmission));
+        $this->assertFalse($suspiciousSubmissions->contains($normalSubmission));
+    }
+
+    #[Test]
+    public function it_calculates_comprehensive_risk_score(): void
+    {
+        $submission = BlockedSubmission::create([
+            'form_identifier' => 'test_form',
+            'ip_address' => '192.168.1.100',
+            'block_reason' => BlockReason::HONEYPOT->value,
+            'is_tor' => true,
+            'country_code' => 'CN',
+            'form_field_count' => 2,
+            'blocked_at' => now(),
+        ]);
+
+        $riskScore = $submission->calculateComprehensiveRiskScore();
+
+        $this->assertGreaterThan(90, $riskScore);
+        $this->assertLessThanOrEqual(100, $riskScore);
+    }
+
+    #[Test]
+    public function it_generates_threat_assessment(): void
+    {
+        $submission = BlockedSubmission::create([
+            'form_identifier' => 'test_form',
+            'ip_address' => '192.168.1.100',
+            'block_reason' => 'spam_pattern',
+            'risk_score' => 75,
+            'blocked_at' => now(),
+        ]);
+
+        $assessment = $submission->generateThreatAssessment();
+
+        $this->assertIsArray($assessment);
+        $this->assertArrayHasKey('risk_score', $assessment);
+        $this->assertArrayHasKey('risk_level', $assessment);
+        $this->assertArrayHasKey('threat_indicators', $assessment);
+        $this->assertArrayHasKey('recommendations', $assessment);
+        $this->assertArrayHasKey('submission_patterns', $assessment);
     }
 }

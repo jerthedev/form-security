@@ -7,25 +7,23 @@ declare(strict_types=1);
  *
  * EPIC: EPIC-001-foundation-infrastructure
  * SPEC: SPEC-019-geolite2-database-management
- * SPRINT: Sprint-002-core-foundation-service-provider-database
- * TICKET: 1021-database-model-tests
+ * SPRINT: Sprint-003-models-configuration-management
+ * TICKET: 1012-model-classes-relationships
  *
  * Description: Eloquent model for GeoLite2 location data with hierarchical geographic
  * relationships and efficient querying for the JTD-FormSecurity package.
  *
  * @see docs/Planning/Epics/EPIC-001-foundation-infrastructure.md
  * @see docs/Planning/Specs/Specialized-Features/SPEC-019-geolite2-database-management.md
- * @see docs/Planning/Sprints/002-core-foundation-service-provider-database.md
- * @see docs/Planning/Tickets/Foundation-Infrastructure/Test-Implementation/1021-database-model-tests.md
+ * @see docs/Planning/Sprints/003-models-configuration-management.md
+ * @see docs/Planning/Tickets/Foundation-Infrastructure/Implementation/1012-model-classes-relationships.md
  */
 
 namespace JTD\FormSecurity\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * GeoLite2Location Model
@@ -58,10 +56,8 @@ use Carbon\Carbon;
  * @property Carbon $created_at
  * @property Carbon $updated_at
  */
-class GeoLite2Location extends Model
+class GeoLite2Location extends BaseModel
 {
-    use HasFactory;
-
     /**
      * The table associated with the model.
      */
@@ -186,7 +182,7 @@ class GeoLite2Location extends Model
         float $maxLng
     ): Builder {
         return $query->whereBetween('latitude', [$minLat, $maxLat])
-                    ->whereBetween('longitude', [$minLng, $maxLng]);
+            ->whereBetween('longitude', [$minLng, $maxLng]);
     }
 
     /**
@@ -195,6 +191,7 @@ class GeoLite2Location extends Model
     public function scopeBySubdivision(Builder $query, string $subdivisionCode, int $level = 1): Builder
     {
         $column = $level === 1 ? 'subdivision_1_iso_code' : 'subdivision_2_iso_code';
+
         return $query->where($column, $subdivisionCode);
     }
 
@@ -204,6 +201,72 @@ class GeoLite2Location extends Model
     public function scopeRecentlyUpdated(Builder $query, int $days = 30): Builder
     {
         return $query->where('data_updated_at', '>=', now()->subDays($days));
+    }
+
+    /**
+     * Query scope: Filter by multiple countries
+     */
+    public function scopeByCountries(Builder $query, array $countryCodes): Builder
+    {
+        return $query->whereIn('country_iso_code', $countryCodes);
+    }
+
+    /**
+     * Query scope: Filter by postal code
+     */
+    public function scopeByPostalCode(Builder $query, string $postalCode): Builder
+    {
+        return $query->whereJsonContains('postal_codes', $postalCode);
+    }
+
+    /**
+     * Query scope: Filter by accuracy radius
+     */
+    public function scopeByAccuracyRadius(Builder $query, int $maxRadius): Builder
+    {
+        return $query->where('accuracy_radius', '<=', $maxRadius);
+    }
+
+    /**
+     * Query scope: Major cities (with high accuracy)
+     */
+    public function scopeMajorCities(Builder $query): Builder
+    {
+        return $query->whereNotNull('city_name')
+            ->where('accuracy_radius', '<=', 50)
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude');
+    }
+
+    /**
+     * Query scope: Filter by region (continent-based)
+     */
+    public function scopeByRegion(Builder $query, string $region): Builder
+    {
+        $continentCodes = match (strtolower($region)) {
+            'north_america' => ['NA'],
+            'south_america' => ['SA'],
+            'europe' => ['EU'],
+            'asia' => ['AS'],
+            'africa' => ['AF'],
+            'oceania' => ['OC'],
+            'antarctica' => ['AN'],
+            default => [],
+        };
+
+        if (empty($continentCodes)) {
+            return $query;
+        }
+
+        return $query->whereIn('continent_code', $continentCodes);
+    }
+
+    /**
+     * Query scope: Filter by data version
+     */
+    public function scopeByDataVersion(Builder $query, string $version): Builder
+    {
+        return $query->where('data_version', $version);
     }
 
     /**
@@ -233,7 +296,7 @@ class GeoLite2Location extends Model
      */
     public function hasCoordinates(): bool
     {
-        return !is_null($this->latitude) && !is_null($this->longitude);
+        return ! is_null($this->latitude) && ! is_null($this->longitude);
     }
 
     /**
@@ -241,16 +304,16 @@ class GeoLite2Location extends Model
      */
     public function distanceTo(GeoLite2Location $other): ?float
     {
-        if (!$this->hasCoordinates() || !$other->hasCoordinates()) {
+        if (! $this->hasCoordinates() || ! $other->hasCoordinates()) {
             return null;
         }
 
         $earthRadius = 6371; // Earth's radius in kilometers
 
-        $lat1Rad = deg2rad((float)$this->latitude);
-        $lat2Rad = deg2rad((float)$other->latitude);
-        $deltaLatRad = deg2rad((float)$other->latitude - (float)$this->latitude);
-        $deltaLngRad = deg2rad((float)$other->longitude - (float)$this->longitude);
+        $lat1Rad = deg2rad((float) $this->latitude);
+        $lat2Rad = deg2rad((float) $other->latitude);
+        $deltaLatRad = deg2rad((float) $other->latitude - (float) $this->latitude);
+        $deltaLngRad = deg2rad((float) $other->longitude - (float) $this->longitude);
 
         $a = sin($deltaLatRad / 2) * sin($deltaLatRad / 2) +
              cos($lat1Rad) * cos($lat2Rad) *
@@ -292,7 +355,7 @@ class GeoLite2Location extends Model
      */
     public function getCoordinates(): ?array
     {
-        if (!$this->hasCoordinates()) {
+        if (! $this->hasCoordinates()) {
             return null;
         }
 
@@ -319,5 +382,81 @@ class GeoLite2Location extends Model
             'antarctica' => in_array($this->continent_code, ['AN']),
             default => false,
         };
+    }
+
+    /**
+     * Get continent name from code
+     */
+    public function getContinentNameFromCode(): string
+    {
+        return match ($this->continent_code) {
+            'AF' => 'Africa',
+            'AN' => 'Antarctica',
+            'AS' => 'Asia',
+            'EU' => 'Europe',
+            'NA' => 'North America',
+            'OC' => 'Oceania',
+            'SA' => 'South America',
+            default => $this->continent_name ?? 'Unknown',
+        };
+    }
+
+    /**
+     * Check if location has valid coordinates
+     */
+    public function hasValidCoordinates(): bool
+    {
+        return ! is_null($this->latitude) &&
+               ! is_null($this->longitude) &&
+               $this->latitude >= -90 && $this->latitude <= 90 &&
+               $this->longitude >= -180 && $this->longitude <= 180;
+    }
+
+    /**
+     * Get location summary for display
+     */
+    public function getLocationSummary(): array
+    {
+        return [
+            'geoname_id' => $this->geoname_id,
+            'display_name' => $this->getDisplayName(),
+            'country' => $this->country_name,
+            'country_code' => $this->country_iso_code,
+            'continent' => $this->getContinentNameFromCode(),
+            'coordinates' => $this->hasValidCoordinates() ? [
+                'latitude' => $this->latitude,
+                'longitude' => $this->longitude,
+                'accuracy_radius' => $this->accuracy_radius,
+            ] : null,
+            'timezone' => $this->time_zone,
+            'is_eu' => $this->is_in_european_union,
+            'postal_codes_count' => is_array($this->postal_codes) ? count($this->postal_codes) : 0,
+        ];
+    }
+
+    /**
+     * Find locations within radius of coordinates
+     */
+    public static function findWithinRadius(float $latitude, float $longitude, float $radiusKm, int $limit = 50): \Illuminate\Database\Eloquent\Collection
+    {
+        // Using Haversine formula approximation for database query
+        $latRange = $radiusKm / 111; // Approximate km per degree latitude
+        $lonRange = $radiusKm / (111 * cos(deg2rad($latitude))); // Adjust for longitude
+
+        return static::query()
+            ->whereBetween('latitude', [$latitude - $latRange, $latitude + $latRange])
+            ->whereBetween('longitude', [$longitude - $lonRange, $longitude + $lonRange])
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->limit($limit)
+            ->get()
+            ->filter(function ($location) use ($latitude, $longitude, $radiusKm) {
+                $distance = $location->distanceTo(new static([
+                    'latitude' => $latitude,
+                    'longitude' => $longitude,
+                ]));
+
+                return $distance !== null && $distance <= $radiusKm;
+            });
     }
 }

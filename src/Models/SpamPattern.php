@@ -7,24 +7,27 @@ declare(strict_types=1);
  *
  * EPIC: EPIC-001-foundation-infrastructure
  * SPEC: SPEC-001-database-schema-models
- * SPRINT: Sprint-002-core-foundation-service-provider-database
- * TICKET: 1021-database-model-tests
+ * SPRINT: Sprint-003-models-configuration-management
+ * TICKET: 1012-model-classes-relationships
  *
  * Description: Eloquent model for spam pattern management with configurable detection
  * rules, accuracy tracking, and performance optimization for the JTD-FormSecurity package.
  *
  * @see docs/Planning/Epics/EPIC-001-foundation-infrastructure.md
  * @see docs/Planning/Specs/Infrastructure-System/SPEC-001-database-schema-models.md
- * @see docs/Planning/Sprints/002-core-foundation-service-provider-database.md
- * @see docs/Planning/Tickets/Foundation-Infrastructure/Test-Implementation/1021-database-model-tests.md
+ * @see docs/Planning/Sprints/003-models-configuration-management.md
+ * @see docs/Planning/Tickets/Foundation-Infrastructure/Implementation/1012-model-classes-relationships.md
  */
 
 namespace JTD\FormSecurity\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
+use JTD\FormSecurity\Contracts\CacheableModelInterface;
+use JTD\FormSecurity\Enums\PatternAction;
+use JTD\FormSecurity\Enums\PatternType;
 
 /**
  * SpamPattern Model
@@ -35,7 +38,7 @@ use Carbon\Carbon;
  * @property int $id
  * @property string $name
  * @property string|null $description
- * @property string $pattern_type
+ * @property PatternType $pattern_type
  * @property string $pattern
  * @property array|null $pattern_config
  * @property bool $case_sensitive
@@ -44,7 +47,7 @@ use Carbon\Carbon;
  * @property array|null $target_forms
  * @property string $scope
  * @property int $risk_score
- * @property string $action
+ * @property PatternAction $action
  * @property array|null $action_config
  * @property int $match_count
  * @property int $false_positive_count
@@ -65,9 +68,17 @@ use Carbon\Carbon;
  * @property Carbon $created_at
  * @property Carbon $updated_at
  */
-class SpamPattern extends Model
+class SpamPattern extends BaseModel implements CacheableModelInterface
 {
     use HasFactory;
+
+    /**
+     * Create a new factory instance for the model.
+     */
+    protected static function newFactory()
+    {
+        return new \Database\Factories\SpamPatternFactory();
+    }
 
     /**
      * The table associated with the model.
@@ -113,6 +124,8 @@ class SpamPattern extends Model
      * The attributes that should be cast.
      */
     protected $casts = [
+        'pattern_type' => PatternType::class,
+        'action' => PatternAction::class,
         'pattern_config' => 'array',
         'target_fields' => 'array',
         'target_forms' => 'array',
@@ -234,6 +247,94 @@ class SpamPattern extends Model
     }
 
     /**
+     * Query scope: Filter by pattern types (multiple)
+     */
+    public function scopeByTypes(Builder $query, array $types): Builder
+    {
+        return $query->whereIn('pattern_type', $types);
+    }
+
+    /**
+     * Query scope: Filter by actions (multiple)
+     */
+    public function scopeByActions(Builder $query, array $actions): Builder
+    {
+        return $query->whereIn('action', $actions);
+    }
+
+    /**
+     * Query scope: Filter by target field
+     */
+    public function scopeByTargetField(Builder $query, string $field): Builder
+    {
+        return $query->whereJsonContains('target_fields', $field);
+    }
+
+    /**
+     * Query scope: Filter by target form
+     */
+    public function scopeByTargetForm(Builder $query, string $form): Builder
+    {
+        return $query->whereJsonContains('target_forms', $form);
+    }
+
+    /**
+     * Query scope: Filter by category
+     */
+    public function scopeByCategory(Builder $query, string $category): Builder
+    {
+        return $query->whereJsonContains('categories', $category);
+    }
+
+    /**
+     * Query scope: Filter by language
+     */
+    public function scopeByLanguage(Builder $query, string $language): Builder
+    {
+        return $query->whereJsonContains('languages', $language);
+    }
+
+    /**
+     * Query scope: Filter by region
+     */
+    public function scopeByRegion(Builder $query, string $region): Builder
+    {
+        return $query->whereJsonContains('regions', $region);
+    }
+
+    /**
+     * Query scope: Filter patterns that prevent submission
+     */
+    public function scopeBlockingPatterns(Builder $query): Builder
+    {
+        return $query->whereIn('action', ['block', 'honeypot']);
+    }
+
+    /**
+     * Query scope: Filter patterns for review/flagging
+     */
+    public function scopeReviewPatterns(Builder $query): Builder
+    {
+        return $query->whereIn('action', ['flag', 'captcha']);
+    }
+
+    /**
+     * Query scope: Filter by minimum match count
+     */
+    public function scopeMinMatches(Builder $query, int $minMatches): Builder
+    {
+        return $query->where('match_count', '>=', $minMatches);
+    }
+
+    /**
+     * Query scope: Filter by maximum false positive rate
+     */
+    public function scopeMaxFalsePositives(Builder $query, int $maxFalsePositives): Builder
+    {
+        return $query->where('false_positive_count', '<=', $maxFalsePositives);
+    }
+
+    /**
      * Check if pattern is high accuracy
      */
     public function isHighAccuracy(): bool
@@ -275,16 +376,17 @@ class SpamPattern extends Model
         }
 
         $usageWeight = min($this->match_count / 100, 1.0); // Cap at 100 matches for full weight
+
         return $this->accuracy_rate * $usageWeight;
     }
 
     /**
      * Update match statistics
      */
-    public function recordMatch(bool $isFalsePositive = false, int $processingTimeMs = null): void
+    public function recordMatch(bool $isFalsePositive = false, ?int $processingTimeMs = null): void
     {
         $this->increment('match_count');
-        
+
         if ($isFalsePositive) {
             $this->increment('false_positive_count');
         }
@@ -331,6 +433,357 @@ class SpamPattern extends Model
             'avg_processing_time' => $this->processing_time_ms,
             'last_matched' => $this->last_matched?->toDateTimeString(),
             'is_high_performance' => $this->isHighAccuracy() && $this->isFastProcessing(),
+        ];
+    }
+
+    /**
+     * Get pattern type description
+     */
+    public function getPatternTypeDescription(): string
+    {
+        return $this->pattern_type->getDescription();
+    }
+
+    /**
+     * Get action description
+     */
+    public function getActionDescription(): string
+    {
+        return $this->action->getDescription();
+    }
+
+    /**
+     * Check if pattern prevents submission
+     */
+    public function preventsSubmission(): bool
+    {
+        return $this->action->preventsSubmission();
+    }
+
+    /**
+     * Get pattern complexity level
+     */
+    public function getComplexity(): string
+    {
+        return $this->pattern_type->getComplexity();
+    }
+
+    // CacheableModelInterface Implementation
+
+    /**
+     * Generate a unique cache key for this model instance
+     */
+    public function getCacheKey(): string
+    {
+        return "spam_pattern:{$this->id}";
+    }
+
+    /**
+     * Generate a cache key for a specific lookup value
+     */
+    public static function getCacheKeyFor(string $identifier): string
+    {
+        return "spam_pattern:{$identifier}";
+    }
+
+    /**
+     * Get the cache expiration time for this model
+     */
+    public function getCacheExpiration(): ?Carbon
+    {
+        // Patterns don't have explicit expiration, use updated_at + TTL
+        return $this->updated_at?->addSeconds(static::getDefaultCacheTtl());
+    }
+
+    /**
+     * Check if the cached data has expired
+     */
+    public function isCacheExpired(): bool
+    {
+        $expiration = $this->getCacheExpiration();
+
+        return $expiration && $expiration->isPast();
+    }
+
+    /**
+     * Refresh the cache expiration time
+     */
+    public function refreshCacheExpiration(): bool
+    {
+        // For patterns, we just update the updated_at timestamp
+        return $this->touch();
+    }
+
+    /**
+     * Invalidate the cache for this model instance
+     */
+    public function invalidateCache(): bool
+    {
+        Cache::forget($this->getCacheKey());
+        Cache::forget('active_patterns');
+        Cache::forget('patterns_by_type');
+
+        return true;
+    }
+
+    /**
+     * Get cached data or retrieve from database
+     */
+    public static function getCached(string $identifier): ?static
+    {
+        $cacheKey = static::getCacheKeyFor($identifier);
+
+        return Cache::remember($cacheKey, static::getDefaultCacheTtl(), function () use ($identifier) {
+            return static::find($identifier);
+        });
+    }
+
+    /**
+     * Store model data in cache
+     */
+    public function storeInCache(): bool
+    {
+        Cache::put($this->getCacheKey(), $this, static::getDefaultCacheTtl());
+
+        return true;
+    }
+
+    /**
+     * Remove model data from cache
+     */
+    public function removeFromCache(): bool
+    {
+        return Cache::forget($this->getCacheKey());
+    }
+
+    /**
+     * Get the default cache TTL in seconds
+     */
+    public static function getDefaultCacheTtl(): int
+    {
+        return 7200; // 2 hours
+    }
+
+    /**
+     * Get all active patterns with caching
+     */
+    public static function getActivePatternsCached(): \Illuminate\Database\Eloquent\Collection
+    {
+        return Cache::remember('active_patterns', static::getDefaultCacheTtl(), function () {
+            return static::active()
+                ->orderBy('priority')
+                ->orderBy('risk_score', 'desc')
+                ->get();
+        });
+    }
+
+    /**
+     * Get patterns by type with caching
+     */
+    public static function getPatternsByTypeCached(PatternType $type): \Illuminate\Database\Eloquent\Collection
+    {
+        $cacheKey = "patterns_by_type:{$type->value}";
+
+        return Cache::remember($cacheKey, static::getDefaultCacheTtl(), function () use ($type) {
+            return static::active()
+                ->where('pattern_type', $type->value)
+                ->orderBy('priority')
+                ->get();
+        });
+    }
+
+    // Advanced Business Logic Methods
+
+    /**
+     * Optimize pattern performance based on accuracy and speed
+     */
+    public function optimizePattern(): bool
+    {
+        // Calculate effectiveness score
+        $effectiveness = $this->getEffectivenessScore();
+
+        // Adjust priority based on performance
+        if ($effectiveness > 0.9 && $this->processing_time_ms < 5) {
+            $this->priority = min(10, $this->priority + 1);
+        } elseif ($effectiveness < 0.5 || $this->processing_time_ms > 50) {
+            $this->priority = max(1, $this->priority - 1);
+        }
+
+        // Disable patterns with consistently poor performance
+        if ($this->accuracy_rate < 0.3 && $this->match_count > 100) {
+            $this->is_active = false;
+        }
+
+        // Enable learning mode for patterns with moderate performance
+        if ($effectiveness >= 0.5 && $effectiveness < 0.8) {
+            $this->is_learning = true;
+        } elseif ($effectiveness >= 0.9) {
+            $this->is_learning = false;
+        }
+
+        return $this->save();
+    }
+
+    /**
+     * Analyze pattern matching trends
+     */
+    public function analyzeMatchingTrends(int $days = 30): array
+    {
+        // This would typically query a pattern_matches table
+        // For now, we'll simulate based on available data
+
+        $recentMatches = $this->match_count; // Simplified
+        $recentFalsePositives = $this->false_positive_count;
+
+        $trends = [
+            'total_matches' => $recentMatches,
+            'false_positives' => $recentFalsePositives,
+            'accuracy_trend' => 'stable',
+            'volume_trend' => 'stable',
+            'effectiveness_score' => $this->getEffectivenessScore(),
+            'performance_category' => $this->getPerformanceCategory(),
+            'recommendations' => [],
+        ];
+
+        // Analyze trends (simplified logic)
+        if ($this->accuracy_rate > 0.9) {
+            $trends['accuracy_trend'] = 'improving';
+        } elseif ($this->accuracy_rate < 0.5) {
+            $trends['accuracy_trend'] = 'declining';
+        }
+
+        // Generate recommendations
+        $trends['recommendations'] = $this->generateOptimizationRecommendations($trends);
+
+        return $trends;
+    }
+
+    /**
+     * Get performance category
+     */
+    public function getPerformanceCategory(): string
+    {
+        $effectiveness = $this->getEffectivenessScore();
+        $speed = $this->processing_time_ms;
+
+        return match (true) {
+            $effectiveness > 0.9 && $speed < 5 => 'excellent',
+            $effectiveness > 0.8 && $speed < 10 => 'good',
+            $effectiveness > 0.6 && $speed < 25 => 'acceptable',
+            $effectiveness > 0.4 => 'poor',
+            default => 'critical',
+        };
+    }
+
+    /**
+     * Generate optimization recommendations
+     */
+    private function generateOptimizationRecommendations(array $trends): array
+    {
+        $recommendations = [];
+
+        if ($trends['effectiveness_score'] < 0.5) {
+            $recommendations[] = 'Consider disabling or rewriting this pattern';
+            $recommendations[] = 'Review pattern logic and test cases';
+        }
+
+        if ($this->processing_time_ms > 25) {
+            $recommendations[] = 'Optimize pattern for better performance';
+            $recommendations[] = 'Consider simplifying regex or logic';
+        }
+
+        if ($this->false_positive_count > $this->match_count * 0.2) {
+            $recommendations[] = 'Reduce false positive rate';
+            $recommendations[] = 'Add more specific matching criteria';
+        }
+
+        if ($this->match_count < 10 && $this->getAgeInDays() > 30) {
+            $recommendations[] = 'Pattern may be too specific or outdated';
+            $recommendations[] = 'Consider broadening matching criteria';
+        }
+
+        if ($trends['performance_category'] === 'excellent') {
+            $recommendations[] = 'Consider increasing priority';
+            $recommendations[] = 'Use as template for similar patterns';
+        }
+
+        return $recommendations;
+    }
+
+    /**
+     * Test pattern against sample content
+     */
+    public function testPattern(string $content, array $context = []): array
+    {
+        $startTime = microtime(true);
+        $matches = false;
+        $matchDetails = [];
+
+        try {
+            switch ($this->pattern_type) {
+                case PatternType::REGEX:
+                    $flags = $this->case_sensitive ? '' : 'i';
+                    $matches = preg_match("/{$this->pattern}/{$flags}", $content, $matchDetails);
+                    break;
+
+                case PatternType::KEYWORD:
+                    $searchContent = $this->case_sensitive ? $content : strtolower($content);
+                    $searchPattern = $this->case_sensitive ? $this->pattern : strtolower($this->pattern);
+
+                    if ($this->whole_word_only) {
+                        $matches = preg_match("/\b".preg_quote($searchPattern, '/')."\b/", $searchContent);
+                    } else {
+                        $matches = strpos($searchContent, $searchPattern) !== false;
+                    }
+                    break;
+
+                case PatternType::PHRASE:
+                    $searchContent = $this->case_sensitive ? $content : strtolower($content);
+                    $searchPattern = $this->case_sensitive ? $this->pattern : strtolower($this->pattern);
+                    $matches = strpos($searchContent, $searchPattern) !== false;
+                    break;
+
+                case PatternType::EMAIL_PATTERN:
+                    $matches = preg_match('/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/', $content);
+                    if ($matches && $this->pattern) {
+                        $matches = preg_match("/{$this->pattern}/i", $content);
+                    }
+                    break;
+
+                case PatternType::URL_PATTERN:
+                    $matches = preg_match('/https?:\/\/[^\s]+/', $content);
+                    if ($matches && $this->pattern) {
+                        $matches = preg_match("/{$this->pattern}/i", $content);
+                    }
+                    break;
+
+                case PatternType::CONTENT_LENGTH:
+                    $length = strlen($content);
+                    $config = $this->pattern_config ?? [];
+                    $minLength = $config['min_length'] ?? 0;
+                    $maxLength = $config['max_length'] ?? PHP_INT_MAX;
+                    $matches = $length >= $minLength && $length <= $maxLength;
+                    break;
+
+                default:
+                    $matches = false;
+            }
+        } catch (\Exception $e) {
+            $matches = false;
+            $matchDetails = ['error' => $e->getMessage()];
+        }
+
+        $processingTime = (microtime(true) - $startTime) * 1000; // Convert to milliseconds
+
+        return [
+            'matches' => (bool) $matches,
+            'processing_time_ms' => round($processingTime, 2),
+            'match_details' => $matchDetails,
+            'pattern_type' => $this->pattern_type->value,
+            'pattern' => $this->pattern,
+            'risk_score' => $matches ? $this->risk_score : 0,
+            'action' => $matches ? $this->action->value : null,
+            'action_description' => $matches ? $this->action->getDescription() : null,
         ];
     }
 }

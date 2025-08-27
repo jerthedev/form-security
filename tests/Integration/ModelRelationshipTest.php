@@ -20,14 +20,12 @@
 namespace JTD\FormSecurity\Tests\Integration;
 
 use JTD\FormSecurity\Models\BlockedSubmission;
-use JTD\FormSecurity\Models\IpReputation;
-use JTD\FormSecurity\Models\SpamPattern;
-use JTD\FormSecurity\Models\GeoLite2Location;
 use JTD\FormSecurity\Models\GeoLite2IpBlock;
+use JTD\FormSecurity\Models\GeoLite2Location;
+use JTD\FormSecurity\Models\IpReputation;
 use JTD\FormSecurity\Tests\TestCase;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
-use Illuminate\Support\Facades\DB;
 
 #[Group('sprint-002')]
 #[Group('epic-001')]
@@ -141,21 +139,21 @@ class ModelRelationshipTest extends TestCase
 
         // Test eager loading prevents N+1 queries
         $startTime = microtime(true);
-        
+
         $ipBlocks = GeoLite2IpBlock::with('location')->where('geoname_id', 555555)->get();
-        
+
         foreach ($ipBlocks as $block) {
             $locationName = $block->location->city_name; // This should not trigger additional queries
         }
-        
+
         $endTime = microtime(true);
         $processingTime = ($endTime - $startTime) * 1000;
 
         $this->assertCount(5, $ipBlocks);
         $this->assertEquals('London', $ipBlocks->first()->location->city_name);
-        
+
         // Should be fast due to eager loading
-        $this->assertLessThan(100, $processingTime, 
+        $this->assertLessThan(100, $processingTime,
             "Eager loading took {$processingTime}ms, should be < 100ms");
     }
 
@@ -182,7 +180,7 @@ class ModelRelationshipTest extends TestCase
 
         // Test that deleting the location affects the relationship
         $location->delete();
-        
+
         $ipBlock->refresh();
         $this->assertNull($ipBlock->location); // Should return null for deleted location
     }
@@ -268,13 +266,13 @@ class ModelRelationshipTest extends TestCase
 
         // Test counting with conditions
         GeoLite2IpBlock::where('geoname_id', 888888)->first()->update(['is_anonymous_proxy' => true]);
-        
+
         $locationWithProxyCount = GeoLite2Location::withCount([
             'ipBlocks as proxy_blocks_count' => function ($query) {
                 $query->where('is_anonymous_proxy', true);
-            }
+            },
         ])->find($location->id);
-        
+
         $this->assertEquals(1, $locationWithProxyCount->proxy_blocks_count);
     }
 
@@ -320,16 +318,16 @@ class ModelRelationshipTest extends TestCase
         }
 
         $startTime = microtime(true);
-        
+
         // Load location with all IP blocks
         $locationWithBlocks = GeoLite2Location::with('ipBlocks')->find($location->id);
         $blockCount = $locationWithBlocks->ipBlocks->count();
-        
+
         $endTime = microtime(true);
         $processingTime = ($endTime - $startTime) * 1000;
 
         $this->assertEquals(50, $blockCount);
-        $this->assertLessThan(100, $processingTime, 
+        $this->assertLessThan(100, $processingTime,
             "Relationship loading took {$processingTime}ms, should be < 100ms");
     }
 
@@ -373,10 +371,10 @@ class ModelRelationshipTest extends TestCase
         $this->assertEquals('AU', $location->country_iso_code);
         $this->assertEquals('AU', $blockedSubmission->country_code);
         $this->assertEquals('AU', $ipReputation->country_code);
-        
+
         $this->assertEquals('Sydney', $location->city_name);
         $this->assertEquals('Sydney', $blockedSubmission->city);
-        
+
         $this->assertTrue($ipBlock->containsIp('203.0.113.100'));
         $this->assertEquals('203.0.113.100', $blockedSubmission->ip_address);
         $this->assertEquals('203.0.113.100', $ipReputation->ip_address);

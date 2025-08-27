@@ -99,8 +99,8 @@ abstract class TestCase extends Orchestra
      */
     protected function setUpDatabase(): void
     {
-        // Database setup will be implemented when we create migrations
-        // For now, we're using in-memory SQLite which doesn't need migrations
+        // Load migrations for testing
+        $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
     }
 
     /**

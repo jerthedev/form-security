@@ -117,10 +117,7 @@ class FormSecurityServiceProvider extends ServiceProvider
     {
         if ($this->app->runningInConsole()) {
             $this->commands([
-                Console\Commands\InstallCommand::class,
-                Console\Commands\AnalyzeSpamCommand::class,
-                Console\Commands\UpdatePatternsCommand::class,
-                Console\Commands\StatusCommand::class,
+                Console\Commands\ImportGeoLite2Command::class,
             ]);
         }
     }

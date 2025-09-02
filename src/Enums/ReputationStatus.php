@@ -102,7 +102,7 @@ enum ReputationStatus: string
     /**
      * Get reputation status from score
      */
-    public static function fromScore(int $score): self
+    public static function fromScore(int|float $score): self
     {
         return match (true) {
             $score >= 80 => self::TRUSTED,

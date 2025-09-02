@@ -59,6 +59,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class GeoLite2Location extends BaseModel
 {
     /**
+     * Create a new factory instance for the model.
+     */
+    protected static function newFactory()
+    {
+        return \Database\Factories\GeoLite2LocationFactory::new();
+    }
+
+    /**
      * The table associated with the model.
      */
     protected $table = 'geolite2_locations';

@@ -475,7 +475,7 @@ class ConfigurationValidatorTest extends TestCase
         $sqlInjectionAttempts = [
             "'; DROP TABLE users; --",
             "1' OR '1'='1",
-            "UNION SELECT * FROM passwords",
+            'UNION SELECT * FROM passwords',
             "<script>alert('xss')</script>",
             "javascript:alert('xss')",
             "data:text/html,<script>alert('xss')</script>",
@@ -486,7 +486,7 @@ class ConfigurationValidatorTest extends TestCase
             // Note: Only some patterns may be detected depending on implementation
             $this->assertIsArray($result);
             $this->assertArrayHasKey('valid', $result);
-            if (!$result['valid']) {
+            if (! $result['valid']) {
                 $this->assertStringContainsString('potentially dangerous content', $result['errors'][0]);
             }
         }
@@ -509,7 +509,7 @@ class ConfigurationValidatorTest extends TestCase
             // Note: Only some patterns may be detected depending on implementation
             $this->assertIsArray($result);
             $this->assertArrayHasKey('valid', $result);
-            if (!$result['valid']) {
+            if (! $result['valid']) {
                 $this->assertStringContainsString('path traversal patterns', $result['errors'][0]);
             }
         }
@@ -639,7 +639,7 @@ class ConfigurationValidatorTest extends TestCase
         $this->assertArrayHasKey('valid', $result);
         $this->assertArrayHasKey('errors', $result);
 
-        if (!$result['valid']) {
+        if (! $result['valid']) {
             $this->assertNotEmpty($result['errors']);
             // Errors should be descriptive - they might be arrays or strings
             foreach ($result['errors'] as $error) {

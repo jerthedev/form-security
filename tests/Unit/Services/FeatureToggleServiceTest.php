@@ -179,6 +179,7 @@ class FeatureToggleServiceTest extends TestCase
         $callbackExecuted = false;
         $callback = function () use (&$callbackExecuted) {
             $callbackExecuted = true;
+
             return 'feature_result';
         };
 
@@ -203,11 +204,13 @@ class FeatureToggleServiceTest extends TestCase
 
         $callback = function () use (&$callbackExecuted) {
             $callbackExecuted = true;
+
             return 'feature_result';
         };
 
         $fallback = function () use (&$fallbackExecuted) {
             $fallbackExecuted = true;
+
             return 'fallback_result';
         };
 

@@ -67,6 +67,7 @@ class FormSecurityServiceProvider extends ServiceProvider
     {
         $this->registerConfiguration();
         $this->registerCoreServices();
+        $this->registerCacheServices();
         $this->registerConditionalServices();
         $this->registerAliases();
     }
@@ -125,10 +126,19 @@ class FormSecurityServiceProvider extends ServiceProvider
     {
         if ($this->app->runningInConsole()) {
             $this->commands([
+                // Existing commands
                 Console\Commands\ImportGeoLite2Command::class,
                 Console\Commands\ConfigurationPublishCommand::class,
                 Console\Commands\ConfigurationValidateCommand::class,
                 Console\Commands\FeatureToggleCommand::class,
+
+                // New CLI commands suite
+                Console\Commands\InstallCommand::class,
+                Console\Commands\CacheCommand::class,
+                Console\Commands\CleanupCommand::class,
+                Console\Commands\HealthCheckCommand::class,
+                Console\Commands\OptimizeCommand::class,
+                Console\Commands\ReportCommand::class,
             ]);
         }
     }
@@ -172,6 +182,15 @@ class FormSecurityServiceProvider extends ServiceProvider
     {
         // Core services are registered via the $singletons property
         // Additional custom bindings can be added here if needed
+    }
+
+    /**
+     * Register cache services in the container.
+     */
+    protected function registerCacheServices(): void
+    {
+        // Register the cache service provider
+        $this->app->register(\JTD\FormSecurity\Providers\CacheServiceProvider::class);
     }
 
     /**

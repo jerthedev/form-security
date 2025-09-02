@@ -98,7 +98,13 @@ class SpamDetectionService implements SpamDetectionContract
         // Check for spam patterns
         $patternMatches = $this->checkSpamPatterns($content);
         if (! empty($patternMatches)) {
-            $score += 0.4 * count($patternMatches) / 10; // Scale by number of matches
+            // Calculate weighted score based on pattern confidence and count
+            $patternScore = 0.0;
+            foreach ($patternMatches as $match) {
+                $patternScore += $match['confidence'];
+            }
+            // Cap the pattern score contribution but allow multiple matches to accumulate
+            $score += min(0.8, $patternScore);
         }
 
         // Check for excessive links
@@ -126,19 +132,26 @@ class SpamDetectionService implements SpamDetectionContract
     public function checkSpamPatterns(string $content): array
     {
         $matches = [];
-        $patterns = array_merge(
-            $this->defaultPatterns,
-            $this->config->get('patterns.spam', [])
-        );
+        $configPatterns = $this->config->get('patterns.spam', []);
 
-        foreach ($patterns as $pattern => $weight) {
-            // Handle both array format (pattern => weight) and simple array format
-            $actualPattern = is_string($pattern) ? $pattern : $weight;
+        // Process default patterns (simple array format)
+        foreach ($this->defaultPatterns as $pattern) {
+            if (preg_match($pattern, $content, $match)) {
+                $matches[] = [
+                    'pattern' => $pattern,
+                    'match' => $match[0] ?? '',
+                    'confidence' => 0.8, // Default confidence for built-in patterns
+                ];
+            }
+        }
+
+        // Process config patterns (pattern => weight format)
+        foreach ($configPatterns as $pattern => $weight) {
             $confidence = is_numeric($weight) ? $weight : 0.8;
 
-            if (is_string($actualPattern) && preg_match($actualPattern, $content, $match)) {
+            if (is_string($pattern) && preg_match($pattern, $content, $match)) {
                 $matches[] = [
-                    'pattern' => $actualPattern,
+                    'pattern' => $pattern,
                     'match' => $match[0] ?? '',
                     'confidence' => $confidence,
                 ];

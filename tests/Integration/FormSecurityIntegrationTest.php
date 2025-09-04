@@ -19,7 +19,7 @@ declare(strict_types=1);
  * @see docs/Planning/Tickets/Foundation-Infrastructure/Implementation/1012-model-classes-relationships.md
  */
 
-namespace Tests\Integration;
+namespace JTD\FormSecurity\Tests\Integration;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use JTD\FormSecurity\Enums\BlockReason;

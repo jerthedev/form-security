@@ -21,10 +21,17 @@ use JTD\FormSecurity\Services\Cache\Warming\CacheWarmingService;
 use JTD\FormSecurity\Services\CacheManager;
 
 /**
- * CacheServiceProvider
+ * CacheServiceProvider - Optimized with deferred loading
  */
 class CacheServiceProvider extends ServiceProvider
 {
+    /**
+     * Indicates if loading of the provider is deferred.
+     *
+     * @var bool
+     */
+    protected $defer = true;
+
     public function register(): void
     {
         // Register service interfaces
@@ -43,5 +50,24 @@ class CacheServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // Boot logic if needed
+    }
+
+    /**
+     * Get the services provided by the provider.
+     *
+     * @return array<int, string>
+     */
+    public function provides(): array
+    {
+        return [
+            CacheOperationServiceInterface::class,
+            CacheWarmingServiceInterface::class,
+            CacheMaintenanceServiceInterface::class,
+            CacheSecurityServiceInterface::class,
+            CacheStatisticsServiceInterface::class,
+            CacheValidationServiceInterface::class,
+            CacheManagerInterface::class,
+            'cache.manager',
+        ];
     }
 }

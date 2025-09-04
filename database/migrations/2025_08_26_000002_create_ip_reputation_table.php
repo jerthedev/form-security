@@ -72,8 +72,18 @@ return new class extends Migration
             $table->index(['cache_expires_at', 'reputation_status']);
 
             // Analytics indexes
-            $table->index(['last_seen', 'reputation_score']);
-            $table->index(['submission_count', 'blocked_count', 'updated_at']);
+            $table->index(['last_seen', 'reputation_score'], 'idx_ip_reputation_seen_score');
+            $table->index(['submission_count', 'blocked_count', 'updated_at'], 'idx_ip_reputation_activity_analytics');
+
+            // Additional performance indexes for threat intelligence queries
+            $table->index(['reputation_status', 'reputation_score', 'last_seen'], 'idx_ip_reputation_status_score_seen');
+            $table->index(['is_blacklisted', 'is_whitelisted', 'reputation_score'], 'idx_ip_reputation_manual_overrides');
+            $table->index(['country_code', 'reputation_status', 'block_rate'], 'idx_ip_reputation_geo_status_rate');
+            $table->index(['cache_expires_at', 'last_seen'], 'idx_ip_reputation_cache_management');
+
+            // Covering indexes for high-frequency lookups
+            $table->index(['ip_address', 'reputation_status', 'reputation_score', 'cache_expires_at'], 'idx_ip_reputation_lookup_covering');
+            $table->index(['reputation_status', 'country_code', 'block_rate', 'submission_count'], 'idx_ip_reputation_analytics_covering');
         });
     }
 

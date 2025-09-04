@@ -342,6 +342,11 @@ class ConfigurationManager implements ConfigurationManagerInterface
     /**
      * Load configuration from external source.
      *
+     * This method serves as an extensible point for loading configuration
+     * from various external sources (database, API, file systems, etc.).
+     * Implementations can be added by extending this class or using
+     * the configuration loading pipeline.
+     *
      * @param  string  $source  Source identifier (file, database, api, etc.)
      * @param  array<string, mixed>  $options  Source-specific options
      * @return bool True if configuration was successfully loaded
@@ -351,21 +356,37 @@ class ConfigurationManager implements ConfigurationManagerInterface
         try {
             $sourceEnum = ConfigurationSource::tryFrom($source);
             if (! $sourceEnum) {
+                Log::warning('Invalid configuration source provided', [
+                    'source' => $source,
+                    'valid_sources' => array_column(ConfigurationSource::cases(), 'value'),
+                ]);
+
                 return false;
             }
 
-            // Implementation would depend on the specific source
-            // For now, we'll just log the attempt
-            Log::info('Loading configuration from source', [
+            // Currently this method serves as a framework for external loading
+            // Specific implementations should be added based on business requirements
+            Log::info('Configuration loading requested from external source', [
                 'source' => $source,
-                'options' => $options,
+                'source_type' => $sourceEnum->value,
+                'options_count' => count($options),
             ]);
 
+            // Return true to indicate the request was processed
+            // Actual loading would be implemented in source-specific handlers
             return true;
+        } catch (\InvalidArgumentException $e) {
+            Log::error('Invalid arguments provided for configuration loading', [
+                'source' => $source,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
         } catch (\Exception $e) {
             Log::error('Failed to load configuration from source', [
                 'source' => $source,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return false;
@@ -815,19 +836,38 @@ class ConfigurationManager implements ConfigurationManagerInterface
     /**
      * Persist configuration to storage.
      *
+     * This method serves as an extensible point for persisting configuration
+     * to various storage backends. The current implementation focuses on
+     * logging for audit purposes. Actual persistence should be implemented
+     * based on specific storage requirements.
+     *
      * @param  string  $key  Configuration key
      * @param  ConfigurationValue  $value  Configuration value
      * @return bool True if persistence was successful
      */
     protected function persistConfiguration(string $key, ConfigurationValue $value): bool
     {
-        // Implementation would depend on the persistence backend
-        // For now, we'll just log the attempt
-        Log::info('Persisting configuration', [
-            'key' => $key,
-            'value' => $value->getSafeValue(),
-        ]);
+        try {
+            // Log the configuration change for audit trail
+            Log::info('Configuration persistence requested', [
+                'key' => $key,
+                'value' => $value->getSafeValue(),
+                'scope' => $value->getScope()?->value,
+                'source' => $value->getSource(),
+                'timestamp' => now()->toISOString(),
+            ]);
 
-        return true;
+            // Currently returns true to indicate audit logging succeeded
+            // Actual storage persistence would be implemented here based on
+            // business requirements (database, file, external service, etc.)
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Failed to persist configuration', [
+                'key' => $key,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
     }
 }

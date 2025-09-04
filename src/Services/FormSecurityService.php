@@ -210,15 +210,57 @@ class FormSecurityService implements FormSecurityContract
     }
 
     /**
-     * Check IP reputation against external services.
+     * Check IP reputation against stored intelligence data.
      *
      * @param  string  $ipAddress  IP address to check
-     * @return bool True if IP has bad reputation
+     * @return bool True if IP has bad reputation (blacklisted, high threat score, etc.)
      */
     protected function checkIpReputation(string $ipAddress): bool
     {
-        // Placeholder for IP reputation checking
-        // In a real implementation, this would check against reputation services
-        return false;
+        try {
+            // Get cached IP reputation data
+            $reputation = \JTD\FormSecurity\Models\IpReputation::getCached($ipAddress);
+
+            if (! $reputation) {
+                // No reputation data available - consider safe by default
+                return false;
+            }
+
+            // Check if IP is explicitly blacklisted
+            if ($reputation->is_blacklisted) {
+                return true;
+            }
+
+            // Check if IP is whitelisted (override bad reputation)
+            if ($reputation->is_whitelisted) {
+                return false;
+            }
+
+            // Check reputation score threshold (assuming 0-100 scale, >70 is bad)
+            if ($reputation->reputation_score > 70) {
+                return true;
+            }
+
+            // Check block rate threshold (>80% blocked submissions)
+            if ($reputation->block_rate > 0.8 && $reputation->submission_count >= 5) {
+                return true;
+            }
+
+            // Check for known threat indicators
+            $threatFlags = [
+                $reputation->is_malware,
+                $reputation->is_botnet,
+            ];
+
+            return in_array(true, $threatFlags, true);
+        } catch (\Exception $e) {
+            // Log error but don't block submission due to reputation check failure
+            \Illuminate\Support\Facades\Log::warning('IP reputation check failed', [
+                'ip_address' => $ipAddress,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
     }
 }

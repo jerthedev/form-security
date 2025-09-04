@@ -317,6 +317,6 @@ class FormSecurityServiceTest extends TestCase
         $endTime = microtime(true);
 
         $processingTime = $endTime - $startTime;
-        $this->assertPerformanceRequirement($processingTime, 'FormSecurityService analysis');
+        $this->assertAnalysisPerformance($processingTime);
     }
 }

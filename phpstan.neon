@@ -2,21 +2,47 @@ includes:
     - vendor/larastan/larastan/extension.neon
 
 parameters:
-    level: 7
+    level: max
     paths:
         - src
+        - config
     
     # Memory and performance optimization
     tmpDir: /tmp/phpstan-formsecurity
     parallel:
-        maximumNumberOfProcesses: 1
-    bootstrapFiles: []
+        maximumNumberOfProcesses: 4
+    bootstrapFiles:
+        - vendor/autoload.php
     reportUnmatchedIgnoredErrors: false
+    # These are now enabled by default at high levels
+    # checkMissingIterableValueType: true  # Deprecated
+    # checkGenericClassInNonGenericObjectType: true  # Deprecated
     
-    # Exclude problematic paths
-    excludePaths: []
+    # Type coverage and strict checking
+    treatPhpDocTypesAsCertain: false
+        
+    # Exclude test files from analysis
+    excludePaths:
+        - tests/
+        - database/
+        - vendor/
     
-    # Ignore specific errors that are Laravel framework related
+    # Laravel and framework-specific ignores
     ignoreErrors:
-        # Defensive type checks in Cast classes
+        # Defensive type checks in Cast classes are intentional for data validation
         - '#Call to function is_array\(\) with array<.*> will always evaluate to true#'
+        
+        # Laravel facade dynamic methods
+        - '#Call to an undefined static method Illuminate\\Support\\Facades\\[A-Za-z]+::[a-zA-Z]+\(\)#'
+        
+        # Laravel service container bindings
+        - '#Cannot call method [a-zA-Z]+\(\) on mixed#'
+        
+        # PHPStan doesn't understand Laravel's magic methods
+        - '#Access to an undefined property Illuminate\\Database\\Eloquent\\Model::\$[a-zA-Z_]+#'
+        
+        # Allow flexible array structures in configuration
+        - '#Offset .* does not exist on array<string, mixed>#'
+        
+        # Laravel collection methods
+        - '#Method Illuminate\\Support\\Collection::[a-zA-Z]+\(\) invoked with [0-9]+ parameter[s]?, [0-9]+ required#'

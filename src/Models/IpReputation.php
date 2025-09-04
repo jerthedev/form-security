@@ -894,6 +894,99 @@ class IpReputation extends BaseModel implements AnalyticsModelInterface, Cacheab
     }
 
     /**
+     * Optimized scope for IP reputation lookups using covering index
+     */
+    public function scopeOptimizedLookup(Builder $query, string $ipAddress): Builder
+    {
+        return $query->select([
+            'ip_address',
+            'reputation_status',
+            'reputation_score',
+            'cache_expires_at',
+            'is_blacklisted',
+            'is_whitelisted',
+            'last_seen',
+        ])
+            ->where('ip_address', $ipAddress)
+            ->useIndex('idx_ip_reputation_lookup_covering');
+    }
+
+    /**
+     * Optimized scope for analytics queries using covering index
+     */
+    public function scopeOptimizedAnalytics(Builder $query): Builder
+    {
+        return $query->select([
+            'reputation_status',
+            'country_code',
+            'block_rate',
+            'submission_count',
+            'reputation_score',
+        ])
+            ->useIndex('idx_ip_reputation_analytics_covering')
+            ->orderBy('submission_count', 'desc');
+    }
+
+    /**
+     * Optimized scope for threat status queries
+     */
+    public function scopeOptimizedByStatus(Builder $query, string $status): Builder
+    {
+        return $query->select([
+            'reputation_status',
+            'reputation_score',
+            'last_seen',
+            'ip_address',
+            'country_code',
+        ])
+            ->where('reputation_status', $status)
+            ->useIndex('idx_ip_reputation_status_score_seen')
+            ->orderBy('last_seen', 'desc');
+    }
+
+    /**
+     * Optimized scope for cache management queries
+     */
+    public function scopeOptimizedCacheManagement(Builder $query): Builder
+    {
+        return $query->select([
+            'cache_expires_at',
+            'last_seen',
+            'ip_address',
+            'reputation_status',
+        ])
+            ->useIndex('idx_ip_reputation_cache_management')
+            ->orderBy('cache_expires_at');
+    }
+
+    /**
+     * Optimized scope for geographic analysis
+     */
+    public function scopeOptimizedByGeography(Builder $query, string $countryCode): Builder
+    {
+        return $query->select([
+            'country_code',
+            'reputation_status',
+            'block_rate',
+            'reputation_score',
+            'submission_count',
+        ])
+            ->where('country_code', $countryCode)
+            ->useIndex('idx_ip_reputation_geo_status_rate')
+            ->orderBy('block_rate', 'desc');
+    }
+
+    /**
+     * Optimized bulk operations scope
+     */
+    public function scopeOptimizedBulkUpdate(Builder $query, array $ipAddresses): Builder
+    {
+        return $query->select(['id', 'ip_address', 'reputation_score', 'updated_at'])
+            ->whereIn('ip_address', $ipAddresses)
+            ->orderBy('ip_address');
+    }
+
+    /**
      * Get cached threat intelligence summary
      */
     public static function getCachedThreatIntelligence(int $hours = 24): array

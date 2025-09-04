@@ -26,7 +26,6 @@ use JTD\FormSecurity\Services\CachePerformanceMonitor;
 use JTD\FormSecurity\Tests\TestCase;
 use JTD\FormSecurity\ValueObjects\CacheKey;
 use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\Large;
 use PHPUnit\Framework\Attributes\Test;
 
 #[Group('epic-001')]
@@ -351,7 +350,7 @@ class CacheSystemIntegrationTest extends TestCase
         $this->assertNotNull($userReputation, 'User reputation data should be cached');
         $this->assertNotNull($geoData, 'Geo data should be cached');
         $this->assertNotNull($maxAttempts, 'Max attempts config should be cached');
-        
+
         $this->assertEquals(0.95, $userReputation['reputation']);
         $this->assertEquals('US', $geoData['country']);
         $this->assertEquals(5, $maxAttempts);
@@ -481,7 +480,7 @@ class CacheSystemIntegrationTest extends TestCase
             'operations' => $operationCount,
             'total_time' => round($totalTime, 3),
             'operations_per_second' => round($operationsPerSecond, 2),
-            'hit_ratio' => $stats['hit_ratio']
+            'hit_ratio' => $stats['hit_ratio'],
         ];
         // Results available in $metrics for debugging if needed
     }
@@ -541,7 +540,7 @@ class CacheSystemIntegrationTest extends TestCase
             'duration' => $stressTestDuration,
             'operations' => $operationCount,
             'errors' => $errors,
-            'error_rate' => round($errorRate, 2)
+            'error_rate' => round($errorRate, 2),
         ];
         // Results available in $stressMetrics for debugging if needed
     }

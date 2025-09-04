@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace JTD\FormSecurity\Tests\Integration;
 
 use Illuminate\Support\Facades\DB;

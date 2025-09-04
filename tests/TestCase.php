@@ -233,4 +233,40 @@ abstract class TestCase extends Orchestra
             "Performance requirement failed: {$operation} took {$processingTimeMs}ms, should be <= {$threshold}ms"
         );
     }
+
+    /**
+     * Assert that service provider bootstrap time meets requirements.
+     * Service providers have more lenient performance requirements due to initialization overhead.
+     *
+     * @param  float  $processingTime  Processing time in seconds
+     */
+    protected function assertServiceProviderPerformance(float $processingTime): void
+    {
+        $processingTimeMs = $processingTime * 1000;
+        $threshold = 250.0; // 250ms for service provider bootstrap
+
+        $this->assertLessThanOrEqual(
+            $threshold,
+            $processingTimeMs,
+            "Service provider performance requirement failed: bootstrap took {$processingTimeMs}ms, should be <= {$threshold}ms"
+        );
+    }
+
+    /**
+     * Assert that security analysis time meets requirements.
+     * Analysis operations have more lenient requirements due to complex validation logic.
+     *
+     * @param  float  $processingTime  Processing time in seconds
+     */
+    protected function assertAnalysisPerformance(float $processingTime): void
+    {
+        $processingTimeMs = $processingTime * 1000;
+        $threshold = 500.0; // 500ms for security analysis operations (includes database queries)
+
+        $this->assertLessThanOrEqual(
+            $threshold,
+            $processingTimeMs,
+            "Analysis performance requirement failed: operation took {$processingTimeMs}ms, should be <= {$threshold}ms"
+        );
+    }
 }

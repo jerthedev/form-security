@@ -68,8 +68,18 @@ return new class extends Migration
             $table->index(['risk_score', 'blocked_at']);
 
             // Performance indexes for high-volume queries
-            $table->index(['blocked_at', 'form_identifier', 'block_reason']);
-            $table->index(['ip_address', 'form_identifier', 'blocked_at']);
+            $table->index(['blocked_at', 'form_identifier', 'block_reason'], 'idx_blocked_submissions_time_form_reason');
+            $table->index(['ip_address', 'form_identifier', 'blocked_at'], 'idx_blocked_submissions_ip_form_time');
+
+            // Additional performance indexes for common query patterns
+            $table->index(['risk_score', 'blocked_at', 'country_code'], 'idx_blocked_submissions_risk_time_country');
+            $table->index(['form_identifier', 'risk_score', 'blocked_at'], 'idx_blocked_submissions_form_risk_time');
+            $table->index(['session_id', 'blocked_at'], 'idx_blocked_submissions_session_time');
+            $table->index(['fingerprint', 'blocked_at'], 'idx_blocked_submissions_fingerprint_time');
+
+            // Covering indexes for high-frequency analytics queries
+            $table->index(['blocked_at', 'block_reason', 'risk_score', 'country_code'], 'idx_blocked_submissions_analytics_covering');
+            $table->index(['ip_address', 'blocked_at', 'risk_score', 'block_reason'], 'idx_blocked_submissions_ip_analytics_covering');
         });
     }
 

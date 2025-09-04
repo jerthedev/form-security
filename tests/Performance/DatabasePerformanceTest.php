@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace JTD\FormSecurity\Tests\Performance;
 
 use Illuminate\Support\Facades\DB;
@@ -386,5 +388,320 @@ class DatabasePerformanceTest extends TestCase
         // Memory usage should stay under 50MB as per project requirements
         $this->assertLessThan(50, $memoryUsedMB,
             "Memory usage ({$memoryUsedMB}MB) should be < 50MB");
+    }
+
+    #[Test]
+    public function optimized_query_scopes_performance(): void
+    {
+        // Test optimized analytics scope
+        $startTime = microtime(true);
+        $analytics = BlockedSubmission::optimizedAnalytics()->limit(100)->get();
+        $processingTime = microtime(true) - $startTime;
+
+        $this->assertLessThan(0.05, $processingTime,
+            "Optimized analytics query took {$processingTime}s, should be < 0.05s");
+
+        // Test optimized IP lookup scope
+        $startTime = microtime(true);
+        $ipData = IpReputation::optimizedLookup('192.168.1.1')->first();
+        $processingTime = microtime(true) - $startTime;
+
+        $this->assertLessThan(0.02, $processingTime,
+            "Optimized IP lookup took {$processingTime}s, should be < 0.02s");
+
+        // Test optimized pattern selection scope
+        $startTime = microtime(true);
+        $patterns = SpamPattern::optimizedSelection()->limit(50)->get();
+        $processingTime = microtime(true) - $startTime;
+
+        $this->assertLessThan(0.03, $processingTime,
+            "Optimized pattern selection took {$processingTime}s, should be < 0.03s");
+    }
+
+    #[Test]
+    public function covering_index_performance(): void
+    {
+        // Test covering index for blocked submissions analytics
+        $startTime = microtime(true);
+
+        $results = DB::table('blocked_submissions')
+            ->select(['blocked_at', 'block_reason', 'risk_score', 'country_code'])
+            ->where('blocked_at', '>=', now()->subDays(7))
+            ->orderBy('blocked_at', 'desc')
+            ->limit(1000)
+            ->get();
+
+        $processingTime = microtime(true) - $startTime;
+
+        $this->assertLessThan(0.05, $processingTime,
+            "Covering index query took {$processingTime}s, should be < 0.05s");
+
+        // Test covering index for IP reputation lookups
+        $startTime = microtime(true);
+
+        $reputation = DB::table('ip_reputation')
+            ->select(['ip_address', 'reputation_status', 'reputation_score', 'cache_expires_at'])
+            ->where('ip_address', '192.168.1.1')
+            ->first();
+
+        $processingTime = microtime(true) - $startTime;
+
+        $this->assertLessThan(0.01, $processingTime,
+            "Covering index IP lookup took {$processingTime}s, should be < 0.01s");
+    }
+
+    #[Test]
+    public function batch_operations_performance(): void
+    {
+        // Test bulk insert performance
+        $data = [];
+        for ($i = 0; $i < 1000; $i++) {
+            $data[] = [
+                'form_identifier' => 'batch-test-form',
+                'ip_address' => '10.1.0.'.($i % 255),
+                'block_reason' => 'rate_limit',
+                'risk_score' => rand(1, 100),
+                'blocked_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        $startTime = microtime(true);
+
+        // Insert in chunks for better performance
+        $chunks = array_chunk($data, 500);
+        foreach ($chunks as $chunk) {
+            DB::table('blocked_submissions')->insert($chunk);
+        }
+
+        $processingTime = microtime(true) - $startTime;
+
+        // Bulk insert of 1000 records should be very efficient
+        $this->assertLessThan(2.0, $processingTime,
+            "Batch insert of 1000 records took {$processingTime}s, should be < 2.0s");
+    }
+
+    #[Test]
+    public function index_hint_performance(): void
+    {
+        // Test query with explicit index hint performance
+        $startTime = microtime(true);
+
+        $results = DB::select('
+            SELECT blocked_at, block_reason, risk_score, country_code 
+            FROM blocked_submissions USE INDEX (idx_blocked_submissions_analytics_covering)
+            WHERE blocked_at >= ? 
+            ORDER BY blocked_at DESC 
+            LIMIT 500
+        ', [now()->subDays(30)]);
+
+        $processingTime = microtime(true) - $startTime;
+
+        $this->assertLessThan(0.05, $processingTime,
+            "Index hint query took {$processingTime}s, should be < 0.05s");
+    }
+
+    #[Test]
+    public function pagination_performance(): void
+    {
+        // Test paginated queries performance
+        $pageSize = 50;
+        $totalPages = 10;
+        $avgProcessingTime = 0;
+
+        for ($page = 1; $page <= $totalPages; $page++) {
+            $startTime = microtime(true);
+
+            $offset = ($page - 1) * $pageSize;
+            $results = DB::table('blocked_submissions')
+                ->select(['id', 'ip_address', 'form_identifier', 'blocked_at', 'risk_score'])
+                ->orderBy('blocked_at', 'desc')
+                ->offset($offset)
+                ->limit($pageSize)
+                ->get();
+
+            $processingTime = microtime(true) - $startTime;
+            $avgProcessingTime += $processingTime;
+        }
+
+        $avgProcessingTime /= $totalPages;
+
+        $this->assertLessThan(0.02, $avgProcessingTime,
+            "Average pagination query took {$avgProcessingTime}s, should be < 0.02s");
+    }
+
+    #[Test]
+    public function aggregation_query_performance(): void
+    {
+        // Test complex aggregation queries
+        $startTime = microtime(true);
+
+        $stats = DB::table('blocked_submissions')
+            ->select([
+                'country_code',
+                DB::raw('COUNT(*) as total_blocks'),
+                DB::raw('AVG(risk_score) as avg_risk'),
+                DB::raw('MAX(risk_score) as max_risk'),
+                DB::raw('COUNT(DISTINCT ip_address) as unique_ips'),
+            ])
+            ->where('blocked_at', '>=', now()->subDays(30))
+            ->groupBy('country_code')
+            ->orderBy('total_blocks', 'desc')
+            ->limit(20)
+            ->get();
+
+        $processingTime = microtime(true) - $startTime;
+
+        $this->assertLessThan(0.1, $processingTime,
+            "Complex aggregation query took {$processingTime}s, should be < 0.1s");
+    }
+
+    #[Test]
+    public function join_query_performance(): void
+    {
+        // Test join performance between blocked submissions and IP reputation
+        $startTime = microtime(true);
+
+        $results = DB::table('blocked_submissions as bs')
+            ->leftJoin('ip_reputation as ir', 'bs.ip_address', '=', 'ir.ip_address')
+            ->select([
+                'bs.ip_address',
+                'bs.blocked_at',
+                'bs.risk_score as submission_risk',
+                'ir.reputation_score',
+                'ir.reputation_status',
+            ])
+            ->where('bs.blocked_at', '>=', now()->subDays(7))
+            ->where('bs.risk_score', '>=', 70)
+            ->orderBy('bs.blocked_at', 'desc')
+            ->limit(500)
+            ->get();
+
+        $processingTime = microtime(true) - $startTime;
+
+        $this->assertLessThan(0.1, $processingTime,
+            "Join query took {$processingTime}s, should be < 0.1s");
+    }
+
+    #[Test]
+    public function geolocation_lookup_performance(): void
+    {
+        // Test GeoLite2 IP range lookup performance
+        $testIps = ['192.168.1.100', '10.0.0.1', '172.16.0.1'];
+        $avgProcessingTime = 0;
+
+        foreach ($testIps as $ip) {
+            $ipInteger = ip2long($ip);
+            $startTime = microtime(true);
+
+            $location = DB::table('geolite2_ipv4_blocks as blocks')
+                ->join('geolite2_locations as locations', 'blocks.geoname_id', '=', 'locations.geoname_id')
+                ->select([
+                    'locations.country_name',
+                    'locations.city_name',
+                    'blocks.latitude',
+                    'blocks.longitude',
+                ])
+                ->where('blocks.network_start_integer', '<=', $ipInteger)
+                ->where('blocks.network_last_integer', '>=', $ipInteger)
+                ->first();
+
+            $processingTime = microtime(true) - $startTime;
+            $avgProcessingTime += $processingTime;
+        }
+
+        $avgProcessingTime /= count($testIps);
+
+        $this->assertLessThan(0.05, $avgProcessingTime,
+            "Average geolocation lookup took {$avgProcessingTime}s, should be < 0.05s");
+    }
+
+    #[Test]
+    public function concurrent_read_simulation(): void
+    {
+        // Simulate concurrent read operations
+        $startTime = microtime(true);
+
+        $operations = [];
+
+        // Simulate multiple concurrent read operations
+        for ($i = 0; $i < 20; $i++) {
+            $operations[] = function () {
+                return DB::table('blocked_submissions')
+                    ->where('risk_score', '>=', rand(50, 90))
+                    ->limit(10)
+                    ->get();
+            };
+        }
+
+        // Execute operations (simulate concurrency)
+        foreach ($operations as $operation) {
+            $operation();
+        }
+
+        $processingTime = microtime(true) - $startTime;
+
+        $this->assertLessThan(0.5, $processingTime,
+            "20 concurrent read operations took {$processingTime}s, should be < 0.5s");
+    }
+
+    #[Test]
+    public function database_optimization_service_performance(): void
+    {
+        $optimizationService = new \JTD\FormSecurity\Services\DatabaseOptimizationService;
+
+        // Test optimized IP reputation lookup
+        $startTime = microtime(true);
+        $reputation = $optimizationService->optimizedIpReputationLookup('192.168.1.1');
+        $processingTime = microtime(true) - $startTime;
+
+        $this->assertLessThan(0.05, $processingTime,
+            "Optimization service IP lookup took {$processingTime}s, should be < 0.05s");
+
+        // Test cached analytics
+        $startTime = microtime(true);
+        $analytics = $optimizationService->getCachedAnalytics(
+            now()->subDays(7),
+            now(),
+            'day'
+        );
+        $processingTime = microtime(true) - $startTime;
+
+        $this->assertLessThan(0.1, $processingTime,
+            "Optimization service analytics took {$processingTime}s, should be < 0.1s");
+
+        // Get performance metrics
+        $metrics = $optimizationService->getPerformanceMetrics();
+        $this->assertIsArray($metrics);
+    }
+
+    #[Test]
+    public function query_result_caching_performance(): void
+    {
+        $cacheKey = 'test_performance_query';
+
+        // First query (not cached)
+        $startTime = microtime(true);
+        $results1 = DB::table('blocked_submissions')
+            ->where('blocked_at', '>=', now()->subDays(1))
+            ->limit(100)
+            ->get();
+        $firstQueryTime = microtime(true) - $startTime;
+
+        // Cache the results
+        Cache::put($cacheKey, $results1, 300);
+
+        // Second query (from cache)
+        $startTime = microtime(true);
+        $results2 = Cache::get($cacheKey);
+        $cachedQueryTime = microtime(true) - $startTime;
+
+        // Cached query should be significantly faster
+        $this->assertLessThan($firstQueryTime / 10, $cachedQueryTime,
+            'Cached query should be at least 10x faster than database query');
+
+        $this->assertLessThan(0.001, $cachedQueryTime,
+            "Cached query took {$cachedQueryTime}s, should be < 0.001s");
     }
 }

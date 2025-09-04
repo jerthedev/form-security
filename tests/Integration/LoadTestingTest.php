@@ -13,7 +13,7 @@ declare(strict_types=1);
  * capacity and performance under realistic load conditions.
  */
 
-namespace Tests\Integration;
+namespace JTD\FormSecurity\Tests\Integration;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;

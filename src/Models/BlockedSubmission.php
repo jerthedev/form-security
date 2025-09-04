@@ -790,6 +790,89 @@ class BlockedSubmission extends BaseModel implements AnalyticsModelInterface
     }
 
     /**
+     * Optimized scope using covering indexes for fast analytics
+     */
+    public function scopeOptimizedAnalytics(Builder $query): Builder
+    {
+        return $query->select([
+            'blocked_at',
+            'block_reason',
+            'risk_score',
+            'country_code',
+            'form_identifier',
+            'ip_address',
+        ])
+            ->useIndex('idx_blocked_submissions_analytics_covering')
+            ->orderBy('blocked_at', 'desc');
+    }
+
+    /**
+     * Optimized scope for IP-based queries using covering index
+     */
+    public function scopeOptimizedByIp(Builder $query, string $ipAddress): Builder
+    {
+        return $query->select([
+            'ip_address',
+            'blocked_at',
+            'risk_score',
+            'block_reason',
+            'form_identifier',
+        ])
+            ->where('ip_address', $ipAddress)
+            ->useIndex('idx_blocked_submissions_ip_analytics_covering')
+            ->orderBy('blocked_at', 'desc');
+    }
+
+    /**
+     * Optimized scope for time-based queries with minimal data selection
+     */
+    public function scopeOptimizedTimeRange(Builder $query, Carbon $startDate, Carbon $endDate): Builder
+    {
+        return $query->select($this->getOptimizedSelectColumns())
+            ->whereBetween('blocked_at', [$startDate, $endDate])
+            ->useIndex('idx_blocked_submissions_analytics_covering')
+            ->orderBy('blocked_at', 'desc');
+    }
+
+    /**
+     * Optimized scope for high-risk submissions with covering index
+     */
+    public function scopeOptimizedHighRisk(Builder $query): Builder
+    {
+        return $query->select([
+            'risk_score',
+            'blocked_at',
+            'country_code',
+            'form_identifier',
+            'ip_address',
+            'block_reason',
+        ])
+            ->where('risk_score', '>=', 80)
+            ->useIndex('idx_blocked_submissions_risk_time_country')
+            ->orderBy('blocked_at', 'desc');
+    }
+
+    /**
+     * Bulk query optimization for pagination
+     */
+    public function scopeOptimizedPagination(Builder $query, int $page = 1, int $perPage = 50): Builder
+    {
+        return $query->select($this->getOptimizedSelectColumns())
+            ->offset(($page - 1) * $perPage)
+            ->limit($perPage)
+            ->orderBy('blocked_at', 'desc');
+    }
+
+    /**
+     * Scope for efficient count queries using indexes
+     */
+    public function scopeCountOptimized(Builder $query): Builder
+    {
+        return $query->select(DB::raw('COUNT(*) as total'))
+            ->useIndex('idx_blocked_submissions_analytics_covering');
+    }
+
+    /**
      * Get cached high-risk submissions
      */
     public static function getCachedHighRiskSubmissions(int $hours = 24): \Illuminate\Database\Eloquent\Collection

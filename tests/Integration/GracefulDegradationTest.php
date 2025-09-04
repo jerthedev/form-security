@@ -13,7 +13,7 @@ declare(strict_types=1);
  * ensuring system continues to function when external dependencies fail.
  */
 
-namespace Tests\Integration;
+namespace JTD\FormSecurity\Tests\Integration;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;

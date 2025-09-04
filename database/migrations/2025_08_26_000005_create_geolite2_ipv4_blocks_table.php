@@ -77,7 +77,16 @@ return new class extends Migration
             $table->index(['geoname_id', 'latitude', 'longitude']);
 
             // Composite indexes for common queries
-            $table->index(['network_start_integer', 'geoname_id', 'postal_code']);
+            $table->index(['network_start_integer', 'geoname_id', 'postal_code'], 'idx_geolite2_ipv4_start_geo_postal');
+
+            // Additional performance indexes for IP geolocation lookups
+            $table->index(['network_start_integer', 'network_last_integer', 'geoname_id'], 'idx_geolite2_ipv4_range_geo');
+            $table->index(['geoname_id', 'network_start_integer', 'network_last_integer'], 'idx_geolite2_ipv4_geo_range');
+            $table->index(['is_anonymous_proxy', 'network_start_integer', 'network_last_integer'], 'idx_geolite2_ipv4_proxy_range');
+            $table->index(['is_satellite_provider', 'network_start_integer'], 'idx_geolite2_ipv4_satellite_start');
+
+            // Covering index for complete IP lookup with geolocation data
+            $table->index(['network_start_integer', 'network_last_integer', 'geoname_id', 'postal_code', 'latitude', 'longitude'], 'idx_geolite2_ipv4_lookup_covering');
         });
     }
 

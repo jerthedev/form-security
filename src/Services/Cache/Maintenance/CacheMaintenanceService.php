@@ -248,21 +248,22 @@ class CacheMaintenanceService implements CacheMaintenanceServiceInterface
         // For array driver (testing), validate basic functionality
         // In production, this would validate cache data integrity
         try {
-            $testKey = 'validation_test_' . uniqid();
+            $testKey = 'validation_test_'.uniqid();
             $testValue = ['test' => 'data', 'timestamp' => time()];
-            
+
             $repository = $this->repositories[CacheLevel::DATABASE->value] ?? null;
             if ($repository) {
                 // Test basic cache operations
                 $repository->put($testKey, $testValue, 60);
                 $retrieved = $repository->get($testKey);
-                
+
                 if ($retrieved && $retrieved['test'] === 'data') {
                     $repository->forget($testKey); // Clean up
+
                     return 1; // 1 validation passed
                 }
             }
-            
+
             return 0; // No validations or validation failed
         } catch (\Exception $e) {
             return 0; // Validation failed

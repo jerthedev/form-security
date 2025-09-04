@@ -26,7 +26,9 @@ class CleanupCommand extends FormSecurityCommand
                             {--days=30 : Age threshold in days for cleanup}
                             {--force : Force cleanup without confirmation}
                             {--dry-run : Show what would be cleaned without actually doing it}
-                            {--batch-size=1000 : Batch size for database operations}';
+                            {--batch-size=1000 : Batch size for database operations}
+                            {--parallel : Enable parallel processing for multiple cleanup types}
+                            {--memory-limit=100 : Memory limit in MB for cleanup operations}';
 
     /**
      * The console command description.
@@ -45,7 +47,7 @@ class CleanupCommand extends FormSecurityCommand
     ];
 
     /**
-     * Execute the main command logic.
+     * Execute the main command logic with performance optimizations.
      */
     protected function executeCommand(): int
     {
@@ -54,6 +56,11 @@ class CleanupCommand extends FormSecurityCommand
         $force = $this->option('force');
         $dryRun = $this->option('dry-run');
         $batchSize = (int) $this->option('batch-size');
+        $parallel = $this->option('parallel');
+        $memoryLimit = (int) $this->option('memory-limit');
+
+        // Set memory limit to prevent issues with large datasets
+        ini_set('memory_limit', $memoryLimit.'M');
 
         $this->line('<comment>FormSecurity Cleanup Operation</comment>');
         $this->newLine();
@@ -70,8 +77,8 @@ class CleanupCommand extends FormSecurityCommand
             return Command::FAILURE;
         }
 
-        // Show cleanup plan
-        $this->displayCleanupPlan($types, $days);
+        // Show cleanup plan with performance estimates
+        $this->displayOptimizedCleanupPlan($types, $days, $batchSize);
 
         if (! $force && ! $dryRun && ! $this->confirmAction('Proceed with cleanup?', false)) {
             $this->info('Cleanup cancelled');
@@ -81,24 +88,15 @@ class CleanupCommand extends FormSecurityCommand
 
         try {
             $cutoffDate = Carbon::now()->subDays($days);
+            $cleanupStart = microtime(true);
 
-            foreach ($types as $type) {
-                if ($type === 'all') {
-                    $this->cleanupOldRecords($cutoffDate, $batchSize, $dryRun);
-                    $this->cleanupTemporaryFiles($cutoffDate, $dryRun);
-                    $this->cleanupLogs($cutoffDate, $dryRun);
-                    $this->cleanupCache($dryRun);
-                } else {
-                    match ($type) {
-                        'old-records' => $this->cleanupOldRecords($cutoffDate, $batchSize, $dryRun),
-                        'temp-files' => $this->cleanupTemporaryFiles($cutoffDate, $dryRun),
-                        'logs' => $this->cleanupLogs($cutoffDate, $dryRun),
-                        'cache' => $this->cleanupCache($dryRun),
-                        default => $this->displayWarning("Unknown cleanup type: {$type}"),
-                    };
-                }
+            if ($parallel && count($types) > 1) {
+                $this->executeParallelCleanup($types, $cutoffDate, $batchSize, $dryRun);
+            } else {
+                $this->executeSequentialCleanup($types, $cutoffDate, $batchSize, $dryRun);
             }
 
+            $this->recordMetric('total_cleanup_time', microtime(true) - $cleanupStart);
             $this->displayCleanupSummary($dryRun);
 
             return Command::SUCCESS;
@@ -218,7 +216,7 @@ class CleanupCommand extends FormSecurityCommand
     }
 
     /**
-     * Cleanup old database records.
+     * Cleanup old database records with optimized chunked processing.
      */
     protected function cleanupOldRecords(Carbon $cutoffDate, int $batchSize, bool $dryRun): void
     {
@@ -237,19 +235,26 @@ class CleanupCommand extends FormSecurityCommand
             $progressBar->setMessage("Processing table: {$table}");
 
             try {
-                if (! $dryRun) {
-                    $deleted = DB::table($table)
+                $deleted = $this->processInChunks(
+                    fn ($chunkSize, $offset) => DB::table($table)
                         ->where('created_at', '<', $cutoffDate)
-                        ->delete();
+                        ->limit($chunkSize)
+                        ->offset($offset)
+                        ->get(['id']),
+                    $batchSize,
+                    function ($chunk, $chunkNumber) use ($table, $dryRun) {
+                        if (! $dryRun) {
+                            $ids = $chunk->pluck('id');
+                            $deleted = DB::table($table)->whereIn('id', $ids)->delete();
+                            $this->cleanupStats['records_deleted'] += $deleted;
+                        } else {
+                            $count = count($chunk);
+                            $this->line("Chunk {$chunkNumber}: Would delete {$count} records from {$table}");
+                        }
+                    }
+                );
 
-                    $this->cleanupStats['records_deleted'] += $deleted;
-                } else {
-                    $count = DB::table($table)
-                        ->where('created_at', '<', $cutoffDate)
-                        ->count();
-
-                    $this->line("Would delete {$count} records from {$table}");
-                }
+                $this->recordMetric("table_{$table}_processed", $deleted);
             } catch (\Exception $e) {
                 // Table doesn't exist or database error - skip gracefully
                 $this->line("Skipping table {$table}: ".$e->getMessage());
@@ -392,5 +397,106 @@ class CleanupCommand extends FormSecurityCommand
         $this->line('• Run cleanup regularly to maintain optimal performance');
         $this->line('• Consider adjusting retention periods based on your needs');
         $this->line('• Monitor disk space usage after cleanup operations');
+    }
+
+    /**
+     * Display optimized cleanup plan with performance estimates.
+     */
+    protected function displayOptimizedCleanupPlan(array $types, int $days, int $batchSize): void
+    {
+        $this->line('<comment>Cleanup Plan (Optimized)</comment>');
+        $this->line('─────────────────────────────────────────────────────────────');
+        $this->line("Age Threshold: {$days} days");
+        $this->line("Batch Size: {$batchSize}");
+        $this->line('Cleanup Types: '.implode(', ', $types));
+        $this->line('Cutoff Date: '.Carbon::now()->subDays($days)->format('Y-m-d H:i:s'));
+        $this->newLine();
+
+        // Show estimated cleanup sizes with performance predictions
+        $estimates = $this->getCleanupEstimates($days);
+        $estimatedTime = $this->estimateCleanupTime($estimates, $batchSize);
+
+        $headers = ['Category', 'Items to Clean', 'Estimated Size', 'Est. Time'];
+        $rows = [
+            ['Old Records', number_format($estimates['records']), $this->formatBytes($estimates['records_size']), $estimatedTime['records'].'s'],
+            ['Temporary Files', number_format($estimates['temp_files']), $this->formatBytes($estimates['temp_files_size']), $estimatedTime['temp_files'].'s'],
+            ['Log Files', number_format($estimates['log_files']), $this->formatBytes($estimates['log_files_size']), $estimatedTime['log_files'].'s'],
+            ['Cache Entries', number_format($estimates['cache_entries']), $this->formatBytes($estimates['cache_size']), $estimatedTime['cache'].'s'],
+        ];
+
+        $this->displayTable($headers, $rows, 'Optimized Cleanup Estimates');
+    }
+
+    /**
+     * Execute cleanup operations in parallel.
+     */
+    protected function executeParallelCleanup(array $types, Carbon $cutoffDate, int $batchSize, bool $dryRun): void
+    {
+        $this->line('<comment>Executing parallel cleanup...</comment>');
+
+        $operations = [];
+
+        if (in_array('all', $types) || in_array('old-records', $types)) {
+            $operations['records'] = fn () => $this->cleanupOldRecords($cutoffDate, $batchSize, $dryRun);
+        }
+
+        if (in_array('all', $types) || in_array('temp-files', $types)) {
+            $operations['temp_files'] = fn () => $this->cleanupTemporaryFiles($cutoffDate, $dryRun);
+        }
+
+        if (in_array('all', $types) || in_array('logs', $types)) {
+            $operations['logs'] = fn () => $this->cleanupLogs($cutoffDate, $dryRun);
+        }
+
+        if (in_array('all', $types) || in_array('cache', $types)) {
+            $operations['cache'] = fn () => $this->cleanupCache($dryRun);
+        }
+
+        $results = $this->executeInParallel($operations);
+
+        $completed = count(array_filter($results, fn ($result) => $result !== null));
+        $this->line("Parallel cleanup completed: {$completed}/{count($operations)} operations successful");
+    }
+
+    /**
+     * Execute cleanup operations sequentially.
+     */
+    protected function executeSequentialCleanup(array $types, Carbon $cutoffDate, int $batchSize, bool $dryRun): void
+    {
+        $this->line('<comment>Executing sequential cleanup...</comment>');
+
+        foreach ($types as $type) {
+            $operationStart = microtime(true);
+
+            if ($type === 'all') {
+                $this->cleanupOldRecords($cutoffDate, $batchSize, $dryRun);
+                $this->cleanupTemporaryFiles($cutoffDate, $dryRun);
+                $this->cleanupLogs($cutoffDate, $dryRun);
+                $this->cleanupCache($dryRun);
+            } else {
+                match ($type) {
+                    'old-records' => $this->cleanupOldRecords($cutoffDate, $batchSize, $dryRun),
+                    'temp-files' => $this->cleanupTemporaryFiles($cutoffDate, $dryRun),
+                    'logs' => $this->cleanupLogs($cutoffDate, $dryRun),
+                    'cache' => $this->cleanupCache($dryRun),
+                    default => $this->displayWarning("Unknown cleanup type: {$type}"),
+                };
+            }
+
+            $this->recordMetric("type_{$type}_time", microtime(true) - $operationStart);
+        }
+    }
+
+    /**
+     * Estimate cleanup time based on data size and batch size.
+     */
+    protected function estimateCleanupTime(array $estimates, int $batchSize): array
+    {
+        return [
+            'records' => max(1, ceil($estimates['records'] / $batchSize) * 0.1),
+            'temp_files' => max(1, ceil($estimates['temp_files'] / 100) * 0.05),
+            'log_files' => max(1, ceil($estimates['log_files'] / 10) * 0.02),
+            'cache' => 2, // Fixed time for cache operations
+        ];
     }
 }

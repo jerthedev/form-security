@@ -96,8 +96,18 @@ return new class extends Migration
             $table->index(['last_matched', 'is_active']);
 
             // Composite indexes for pattern matching
-            $table->index(['pattern_type', 'scope', 'is_active']);
-            $table->index(['priority', 'is_active', 'pattern_type']);
+            $table->index(['pattern_type', 'scope', 'is_active'], 'idx_spam_patterns_type_scope_active');
+            $table->index(['priority', 'is_active', 'pattern_type'], 'idx_spam_patterns_priority_active_type');
+
+            // Additional performance indexes for pattern execution
+            $table->index(['is_active', 'priority', 'processing_time_ms'], 'idx_spam_patterns_execution_order');
+            $table->index(['accuracy_rate', 'match_count', 'is_active'], 'idx_spam_patterns_performance_metrics');
+            $table->index(['last_matched', 'is_active', 'priority'], 'idx_spam_patterns_recent_activity');
+            $table->index(['risk_score', 'action', 'is_active'], 'idx_spam_patterns_risk_action_active');
+
+            // Covering indexes for pattern selection queries
+            $table->index(['is_active', 'priority', 'pattern_type', 'scope', 'risk_score'], 'idx_spam_patterns_selection_covering');
+            $table->index(['pattern_type', 'is_active', 'accuracy_rate', 'processing_time_ms'], 'idx_spam_patterns_performance_covering');
         });
     }
 

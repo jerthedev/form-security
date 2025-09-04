@@ -104,7 +104,7 @@ class CacheWarmingService implements CacheWarmingServiceInterface
             'total_operations' => $totalWarmers,
             'successful_operations' => $results['summary']['successful'],
             'last_warming_time' => $results['summary']['end_time'],
-            'duration_seconds' => $results['summary']['duration_seconds']
+            'duration_seconds' => $results['summary']['duration_seconds'],
         ]);
 
         // Check if this is a complex test that needs detailed results
@@ -361,7 +361,7 @@ class CacheWarmingService implements CacheWarmingServiceInterface
 
     /**
      * Warm cache using default strategies
-     * 
+     *
      * This method provides compatibility with the older CacheWarmingService interface
      * and delegates to the main warm() method with predefined warming strategies.
      */
@@ -372,7 +372,7 @@ class CacheWarmingService implements CacheWarmingServiceInterface
             $strategies = [
                 'ip_reputation' => ['type' => 'ip_reputation', 'limit' => 100],
                 'spam_patterns' => ['type' => 'spam_pattern', 'limit' => 50],
-                'geolocation' => ['type' => 'geolocation', 'limit' => 200]
+                'geolocation' => ['type' => 'geolocation', 'limit' => 200],
             ];
         } else {
             // Convert indexed array to proper strategy format
@@ -395,7 +395,7 @@ class CacheWarmingService implements CacheWarmingServiceInterface
 
     /**
      * Get warming statistics
-     * 
+     *
      * This method provides compatibility with tests that expect warming statistics
      */
     public function getStats(): array
@@ -404,7 +404,7 @@ class CacheWarmingService implements CacheWarmingServiceInterface
             'total_warmed' => $this->stats['successful_operations'] ?? 0,
             'last_warming_time' => $this->stats['last_warming_time'] ?? time(),
             'memory_usage_mb' => round(memory_get_usage(true) / 1024 / 1024, 2),
-            'operations_stats' => $this->stats
+            'operations_stats' => $this->stats,
         ];
     }
 }

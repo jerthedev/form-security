@@ -13,7 +13,7 @@ declare(strict_types=1);
  * and configuration workflow validation.
  */
 
-namespace Tests\Integration;
+namespace JTD\FormSecurity\Tests\Integration;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;

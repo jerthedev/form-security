@@ -19,7 +19,7 @@ declare(strict_types=1);
  * @see docs/Planning/Tickets/Foundation-Infrastructure/Implementation/1012-model-classes-relationships.md
  */
 
-namespace Tests\Unit\Casts;
+namespace JTD\FormSecurity\Tests\Unit\Casts;
 
 use Illuminate\Database\Eloquent\Model;
 use JTD\FormSecurity\Casts\CoordinatesCast;

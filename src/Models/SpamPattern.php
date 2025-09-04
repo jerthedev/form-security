@@ -592,6 +592,118 @@ class SpamPattern extends BaseModel implements CacheableModelInterface
         });
     }
 
+    /**
+     * Optimized scope for pattern selection using covering index
+     */
+    public function scopeOptimizedSelection(Builder $query): Builder
+    {
+        return $query->select([
+            'is_active',
+            'priority',
+            'pattern_type',
+            'scope',
+            'risk_score',
+            'pattern',
+            'action',
+        ])
+            ->where('is_active', true)
+            ->useIndex('idx_spam_patterns_selection_covering')
+            ->orderBy('priority');
+    }
+
+    /**
+     * Optimized scope for performance monitoring
+     */
+    public function scopeOptimizedPerformance(Builder $query): Builder
+    {
+        return $query->select([
+            'pattern_type',
+            'is_active',
+            'accuracy_rate',
+            'processing_time_ms',
+            'match_count',
+            'priority',
+        ])
+            ->where('is_active', true)
+            ->useIndex('idx_spam_patterns_performance_covering')
+            ->orderBy('accuracy_rate', 'desc');
+    }
+
+    /**
+     * Optimized scope for pattern execution order
+     */
+    public function scopeOptimizedExecutionOrder(Builder $query): Builder
+    {
+        return $query->select([
+            'is_active',
+            'priority',
+            'processing_time_ms',
+            'pattern_type',
+            'pattern',
+            'action',
+            'risk_score',
+        ])
+            ->where('is_active', true)
+            ->useIndex('idx_spam_patterns_execution_order')
+            ->orderBy('priority')
+            ->orderBy('processing_time_ms');
+    }
+
+    /**
+     * Optimized scope for recent activity analysis
+     */
+    public function scopeOptimizedRecentActivity(Builder $query, int $hours = 24): Builder
+    {
+        return $query->select([
+            'last_matched',
+            'is_active',
+            'priority',
+            'pattern_type',
+            'match_count',
+        ])
+            ->where('last_matched', '>=', now()->subHours($hours))
+            ->where('is_active', true)
+            ->useIndex('idx_spam_patterns_recent_activity')
+            ->orderBy('last_matched', 'desc');
+    }
+
+    /**
+     * Optimized scope for risk-based filtering
+     */
+    public function scopeOptimizedByRisk(Builder $query, int $minRiskScore = 50): Builder
+    {
+        return $query->select([
+            'risk_score',
+            'action',
+            'is_active',
+            'pattern_type',
+            'pattern',
+            'priority',
+        ])
+            ->where('risk_score', '>=', $minRiskScore)
+            ->where('is_active', true)
+            ->useIndex('idx_spam_patterns_risk_action_active')
+            ->orderBy('risk_score', 'desc');
+    }
+
+    /**
+     * Optimized scope for bulk pattern evaluation
+     */
+    public function scopeOptimizedBulkEvaluation(Builder $query): Builder
+    {
+        return $query->select([
+            'id',
+            'pattern',
+            'pattern_type',
+            'risk_score',
+            'action',
+            'case_sensitive',
+            'whole_word_only',
+        ])
+            ->where('is_active', true)
+            ->orderBy('priority');
+    }
+
     // Advanced Business Logic Methods
 
     /**

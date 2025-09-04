@@ -13,7 +13,7 @@ declare(strict_types=1);
  * database performance (1,000+ writes/minute), and Epic success criteria validation.
  */
 
-namespace Tests\Integration;
+namespace JTD\FormSecurity\Tests\Integration;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use JTD\FormSecurity\Enums\BlockReason;

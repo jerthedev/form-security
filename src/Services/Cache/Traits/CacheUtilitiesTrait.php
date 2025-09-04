@@ -13,8 +13,11 @@ use JTD\FormSecurity\Services\Cache\Support\RequestLevelCacheRepository;
 trait CacheUtilitiesTrait
 {
     private array $repositories = [];
+
     private array $requestCache = []; // In-memory request-level cache
+
     private array $keyTracker = []; // Track keys stored in each level for pattern matching
+
     private array $tagTracker = []; // Track which keys have which tags
 
     private function initializeRepositories(): void
@@ -50,6 +53,7 @@ trait CacheUtilitiesTrait
         ];
 
         $store = new \Illuminate\Cache\ArrayStore($config['serialize']);
+
         return new \Illuminate\Cache\Repository($store);
     }
 

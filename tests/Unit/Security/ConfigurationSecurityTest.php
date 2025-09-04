@@ -23,7 +23,6 @@ use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Contracts\Events\Dispatcher as EventDispatcher;
 use Illuminate\Support\Facades\Crypt;
-use JTD\FormSecurity\Contracts\ConfigurationValidatorInterface;
 use JTD\FormSecurity\Services\ConfigurationManager;
 use JTD\FormSecurity\Services\ConfigurationValidator;
 use JTD\FormSecurity\Tests\TestCase;
@@ -58,7 +57,7 @@ class ConfigurationSecurityTest extends TestCase
         $this->config = Mockery::mock(ConfigRepository::class);
         $this->cache = Mockery::mock(CacheRepository::class);
         $this->events = Mockery::mock(EventDispatcher::class);
-        $this->validator = new ConfigurationValidator();
+        $this->validator = new ConfigurationValidator;
 
         $this->configManager = new ConfigurationManager(
             $this->config,
@@ -206,14 +205,14 @@ class ConfigurationSecurityTest extends TestCase
     {
         // This test would check that warnings are logged for keys containing
         // sensitive patterns like 'password', 'secret', 'key', 'token', 'api_key'
-        
+
         // Arrange
         $sensitiveKeys = ['password', 'secret_key', 'api_token', 'private_key'];
-        
+
         foreach ($sensitiveKeys as $key) {
             // Act
             $result = $this->validator->validateSecurityConstraints($key, 'some_value');
-            
+
             // Assert - Should be valid but logged as potentially sensitive
             $this->assertTrue($result['valid']);
         }
@@ -225,17 +224,17 @@ class ConfigurationSecurityTest extends TestCase
         // Arrange
         $originalValue = 'original_value';
         $key = 'important_setting';
-        
+
         $this->cache->shouldReceive('get')->andReturn(null);
         $this->config->shouldReceive('get')->andReturn($originalValue);
         $this->events->shouldReceive('dispatch');
 
         // Act - Get original value
         $original = $this->configManager->get($key);
-        
+
         // Try to tamper with the value object directly (should not affect stored value)
         $configValue = $this->configManager->getValue($key);
-        
+
         // Get value again
         $afterTamperAttempt = $this->configManager->get($key);
 

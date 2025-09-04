@@ -77,7 +77,7 @@ class SpamPattern extends BaseModel implements CacheableModelInterface
      */
     protected static function newFactory()
     {
-        return new \Database\Factories\SpamPatternFactory();
+        return new \Database\Factories\SpamPatternFactory;
     }
 
     /**

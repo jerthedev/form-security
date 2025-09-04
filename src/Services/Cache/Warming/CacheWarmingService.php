@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace JTD\FormSecurity\Services\Cache\Warming;
 
 use Illuminate\Cache\CacheManager as LaravelCacheManager;
-use JTD\FormSecurity\Contracts\Cache\CacheWarmingServiceInterface;
 use JTD\FormSecurity\Contracts\Cache\CacheOperationServiceInterface;
+use JTD\FormSecurity\Contracts\Cache\CacheWarmingServiceInterface;
 use JTD\FormSecurity\Enums\CacheLevel;
-use JTD\FormSecurity\ValueObjects\CacheKey;
 use JTD\FormSecurity\Services\Cache\Traits\CacheErrorHandlingTrait;
 use JTD\FormSecurity\Services\Cache\Traits\CacheEventsTrait;
 use JTD\FormSecurity\Services\Cache\Traits\CacheUtilitiesTrait;
+use JTD\FormSecurity\ValueObjects\CacheKey;
 
 /**
  * CacheWarmingService
@@ -99,8 +99,16 @@ class CacheWarmingService implements CacheWarmingServiceInterface
         $results['summary']['success_rate'] = $totalWarmers > 0 ?
             round(($results['summary']['successful'] / $totalWarmers) * 100, 2) : 0;
 
+        // Update internal stats for getStats() method
+        $this->stats = array_merge($this->stats, [
+            'total_operations' => $totalWarmers,
+            'successful_operations' => $results['summary']['successful'],
+            'last_warming_time' => $results['summary']['end_time'],
+            'duration_seconds' => $results['summary']['duration_seconds']
+        ]);
+
         // Check if this is a complex test that needs detailed results
-        $hasErrors = !empty($results['errors']);
+        $hasErrors = ! empty($results['errors']);
         $hasManyWarmers = ($results['summary']['total_warmers'] ?? 0) > 5; // Batch processing tests
         $hasMultipleErrorTypes = ($results['summary']['failed'] ?? 0) > 0 && ($results['summary']['skipped'] ?? 0) > 0; // Complex error scenarios
 
@@ -136,7 +144,7 @@ class CacheWarmingService implements CacheWarmingServiceInterface
         foreach ($results['errors'] ?? [] as $error) {
             if (isset($error['key'])) {
                 $originalKey = $this->extractOriginalKey($error['key']);
-                if (!isset($warmerResults[$originalKey])) {
+                if (! isset($warmerResults[$originalKey])) {
                     $warmerResults[$originalKey] = [
                         'key' => $originalKey,
                         'success' => false,
@@ -273,7 +281,7 @@ class CacheWarmingService implements CacheWarmingServiceInterface
         } catch (\Exception $e) {
             // Error logging (disabled in tests to avoid risky warnings)
             // error_log("Cache warming callback failed: " . $e->getMessage());
-            throw new \RuntimeException("Callback execution failed: " . $e->getMessage(), 0, $e);
+            throw new \RuntimeException('Callback execution failed: '.$e->getMessage(), 0, $e);
         }
     }
 
@@ -282,7 +290,7 @@ class CacheWarmingService implements CacheWarmingServiceInterface
      */
     private function putInCache($cacheKey, $value, array $levels): bool
     {
-        if (!$this->operations) {
+        if (! $this->operations) {
             return false;
         }
 
@@ -332,6 +340,7 @@ class CacheWarmingService implements CacheWarmingServiceInterface
                 return true;
             }
         }
+
         return false;
     }
 
@@ -346,6 +355,56 @@ class CacheWarmingService implements CacheWarmingServiceInterface
             // Return everything after the second colon
             return implode(':', array_slice($parts, 2));
         }
+
         return $fullKey;
+    }
+
+    /**
+     * Warm cache using default strategies
+     * 
+     * This method provides compatibility with the older CacheWarmingService interface
+     * and delegates to the main warm() method with predefined warming strategies.
+     */
+    public function warmCache(array $strategies = []): array
+    {
+        // Default warming strategies if none provided
+        if (empty($strategies)) {
+            $strategies = [
+                'ip_reputation' => ['type' => 'ip_reputation', 'limit' => 100],
+                'spam_patterns' => ['type' => 'spam_pattern', 'limit' => 50],
+                'geolocation' => ['type' => 'geolocation', 'limit' => 200]
+            ];
+        } else {
+            // Convert indexed array to proper strategy format
+            $formattedStrategies = [];
+            foreach ($strategies as $key => $strategy) {
+                if (is_numeric($key)) {
+                    // Handle indexed array like ['frequent_data', 'critical_data']
+                    $formattedStrategies[$strategy] = ['type' => $strategy, 'limit' => 50];
+                } else {
+                    // Handle associative array
+                    $formattedStrategies[$key] = $strategy;
+                }
+            }
+            $strategies = $formattedStrategies;
+        }
+
+        // Use the main warm method with default cache levels
+        return $this->warm($strategies);
+    }
+
+    /**
+     * Get warming statistics
+     * 
+     * This method provides compatibility with tests that expect warming statistics
+     */
+    public function getStats(): array
+    {
+        return [
+            'total_warmed' => $this->stats['successful_operations'] ?? 0,
+            'last_warming_time' => $this->stats['last_warming_time'] ?? time(),
+            'memory_usage_mb' => round(memory_get_usage(true) / 1024 / 1024, 2),
+            'operations_stats' => $this->stats
+        ];
     }
 }

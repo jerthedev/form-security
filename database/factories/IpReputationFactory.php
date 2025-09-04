@@ -75,7 +75,7 @@ class IpReputationFactory extends Factory
             'ip_address' => function () {
                 // Generate truly unique IP using UUID-based approach
                 $uuid = uniqid('', true);
-                $hash = crc32($uuid . microtime(true) . mt_rand());
+                $hash = crc32($uuid.microtime(true).mt_rand());
 
                 // Convert hash to IP components ensuring uniqueness
                 $octet1 = 10; // Private IP range

@@ -29,6 +29,8 @@ use Illuminate\Database\Eloquent\Model;
  *
  * Custom cast for handling threat categories with validation and normalization.
  * Ensures threat categories are from a predefined list and properly formatted.
+ *
+ * @implements CastsAttributes<array<string>, array<mixed>|string|null>
  */
 class ThreatCategoriesCast implements CastsAttributes
 {
@@ -58,6 +60,7 @@ class ThreatCategoriesCast implements CastsAttributes
      * Cast the given value to threat categories array
      *
      * @param  array<string, mixed>  $attributes
+     * @return array<string>
      */
     public function get(Model $model, string $key, mixed $value, array $attributes): array
     {
@@ -116,7 +119,13 @@ class ThreatCategoriesCast implements CastsAttributes
             return null;
         }
 
-        return empty($validated) ? null : json_encode($validated);
+        if (empty($validated)) {
+            return null;
+        }
+
+        $encoded = json_encode($validated);
+
+        return $encoded !== false ? $encoded : null;
     }
 
     /**

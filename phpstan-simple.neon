@@ -1,0 +1,15 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: 6  
+    paths:
+        - src/Console/Commands
+    
+    tmpDir: /tmp/phpstan-simple
+    parallel:
+        maximumNumberOfProcesses: 1
+    
+    ignoreErrors:
+        - '#Call to an undefined method Illuminate\\Contracts\\Foundation\\Application::#'
+        - '#Method .* has parameter .* with no value type specified in iterable type array#'

@@ -107,8 +107,6 @@ abstract class TestCase extends Orchestra
 
     /**
      * Define database migrations.
-     *
-     * @return void
      */
     protected function defineDatabaseMigrations(): void
     {

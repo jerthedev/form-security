@@ -350,7 +350,7 @@ class ModelRelationshipTest extends TestCase
             'geoname_id' => 123123,
         ]);
 
-        // Create related data in other models
+        // Create related data in other models with different IPs in the same network
         $blockedSubmission = BlockedSubmission::create([
             'form_identifier' => 'test_form',
             'ip_address' => '203.0.113.100', // IP within the block
@@ -361,7 +361,7 @@ class ModelRelationshipTest extends TestCase
         ]);
 
         $ipReputation = IpReputation::create([
-            'ip_address' => '203.0.113.100',
+            'ip_address' => '203.0.113.101', // Different IP in same block
             'reputation_score' => 75,
             'reputation_status' => 'neutral',
             'country_code' => 'AU',
@@ -376,7 +376,8 @@ class ModelRelationshipTest extends TestCase
         $this->assertEquals('Sydney', $blockedSubmission->city);
 
         $this->assertTrue($ipBlock->containsIp('203.0.113.100'));
+        $this->assertTrue($ipBlock->containsIp('203.0.113.101'));
         $this->assertEquals('203.0.113.100', $blockedSubmission->ip_address);
-        $this->assertEquals('203.0.113.100', $ipReputation->ip_address);
+        $this->assertEquals('203.0.113.101', $ipReputation->ip_address);
     }
 }

@@ -79,7 +79,7 @@ class IpReputation extends BaseModel implements AnalyticsModelInterface, Cacheab
      */
     protected static function newFactory()
     {
-        return new \Database\Factories\IpReputationFactory();
+        return new \Database\Factories\IpReputationFactory;
     }
 
     /**

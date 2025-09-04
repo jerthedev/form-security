@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace JTD\FormSecurity\Services\Cache\Statistics;
 
 use Illuminate\Cache\CacheManager as LaravelCacheManager;
-use JTD\FormSecurity\Contracts\Cache\CacheStatisticsServiceInterface;
 use JTD\FormSecurity\Contracts\Cache\CacheOperationServiceInterface;
+use JTD\FormSecurity\Contracts\Cache\CacheStatisticsServiceInterface;
 use JTD\FormSecurity\Enums\CacheLevel;
 use JTD\FormSecurity\Services\Cache\Traits\CacheUtilitiesTrait;
 
@@ -18,6 +18,7 @@ class CacheStatisticsService implements CacheStatisticsServiceInterface
     use CacheUtilitiesTrait;
 
     private array $stats = [];
+
     private ?CacheOperationServiceInterface $operations = null;
 
     public function __construct(
@@ -388,6 +389,7 @@ class CacheStatisticsService implements CacheStatisticsServiceInterface
 
             if ($totalOperations === 0) {
                 $efficiency[$level->value] = 0.0;
+
                 continue;
             }
 
@@ -528,6 +530,7 @@ class CacheStatisticsService implements CacheStatisticsServiceInterface
         // For array driver (testing), we can't get real size
         // In production, this would calculate actual cache size
         $entries = $this->getEstimatedEntries();
+
         return round($entries * 0.001, 2); // Rough estimate: 1KB per entry
     }
 
@@ -551,7 +554,7 @@ class CacheStatisticsService implements CacheStatisticsServiceInterface
     private function getLevelCapacityInfo(CacheLevel $level): array
     {
         $repository = $this->repositories[$level->value] ?? null;
-        if (!$repository) {
+        if (! $repository) {
             return [
                 'level' => $level->value,
                 'available' => false,
@@ -565,6 +568,7 @@ class CacheStatisticsService implements CacheStatisticsServiceInterface
         // For request level, get actual data
         if ($level === CacheLevel::REQUEST && $repository instanceof \JTD\FormSecurity\Services\Cache\Support\RequestLevelCacheRepository) {
             $sizeInfo = $repository->size();
+
             return [
                 'level' => $level->value,
                 'available' => true,
@@ -601,7 +605,7 @@ class CacheStatisticsService implements CacheStatisticsServiceInterface
 
         foreach ($levels as $level) {
             $capacityInfo = $this->getLevelCapacityInfo($level);
-            $size = is_numeric($capacityInfo['used_mb']) ? (float)$capacityInfo['used_mb'] : 0;
+            $size = is_numeric($capacityInfo['used_mb']) ? (float) $capacityInfo['used_mb'] : 0;
 
             if ($size > $maxSize) {
                 $maxSize = $size;
@@ -621,7 +625,7 @@ class CacheStatisticsService implements CacheStatisticsServiceInterface
         $totalSize = 0;
         foreach ($levels as $level) {
             $capacityInfo = $this->getLevelCapacityInfo($level);
-            $size = is_numeric($capacityInfo['used_mb']) ? (float)$capacityInfo['used_mb'] : 0;
+            $size = is_numeric($capacityInfo['used_mb']) ? (float) $capacityInfo['used_mb'] : 0;
             $totalSize += $size;
         }
 
@@ -643,7 +647,7 @@ class CacheStatisticsService implements CacheStatisticsServiceInterface
 
         foreach ($levels as $level) {
             $capacityInfo = $this->getLevelCapacityInfo($level);
-            $entries = (int)($capacityInfo['estimated_entries'] ?? 0);
+            $entries = (int) ($capacityInfo['estimated_entries'] ?? 0);
 
             if ($entries > $maxEntries) {
                 $maxEntries = $entries;
@@ -663,7 +667,7 @@ class CacheStatisticsService implements CacheStatisticsServiceInterface
         $totalEntries = 0;
         foreach ($levels as $level) {
             $capacityInfo = $this->getLevelCapacityInfo($level);
-            $entries = (int)($capacityInfo['estimated_entries'] ?? 0);
+            $entries = (int) ($capacityInfo['estimated_entries'] ?? 0);
             $totalEntries += $entries;
         }
 
@@ -684,9 +688,9 @@ class CacheStatisticsService implements CacheStatisticsServiceInterface
 
         foreach ($levels as $level) {
             $capacityInfo = $this->getLevelCapacityInfo($level);
-            $usedMb = is_numeric($capacityInfo['used_mb']) ? (float)$capacityInfo['used_mb'] : 0;
-            $capacityMb = is_numeric($capacityInfo['capacity_mb']) ? (float)$capacityInfo['capacity_mb'] : 0;
-            $entries = (int)($capacityInfo['estimated_entries'] ?? 0);
+            $usedMb = is_numeric($capacityInfo['used_mb']) ? (float) $capacityInfo['used_mb'] : 0;
+            $capacityMb = is_numeric($capacityInfo['capacity_mb']) ? (float) $capacityInfo['capacity_mb'] : 0;
+            $entries = (int) ($capacityInfo['estimated_entries'] ?? 0);
 
             // Calculate efficiency metrics
             $sizePerEntry = $entries > 0 ? ($usedMb / $entries) : 0;
@@ -747,7 +751,7 @@ class CacheStatisticsService implements CacheStatisticsServiceInterface
         // Collect size information for all levels
         foreach ($levels as $level) {
             $capacityInfo = $this->getLevelCapacityInfo($level);
-            $usedMb = is_numeric($capacityInfo['used_mb']) ? (float)$capacityInfo['used_mb'] : 0;
+            $usedMb = is_numeric($capacityInfo['used_mb']) ? (float) $capacityInfo['used_mb'] : 0;
             $totalSize += $usedMb;
 
             // Generate level-specific recommendations
@@ -802,6 +806,6 @@ class CacheStatisticsService implements CacheStatisticsServiceInterface
         $value = $bytes / pow(1024, $power);
         $unit = $units[$power];
 
-        return round($value, 2) . ' ' . $unit;
+        return round($value, 2).' '.$unit;
     }
 }

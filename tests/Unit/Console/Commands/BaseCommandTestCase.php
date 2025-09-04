@@ -18,15 +18,15 @@ declare(strict_types=1);
 
 namespace JTD\FormSecurity\Tests\Unit\Console\Commands;
 
-use JTD\FormSecurity\Tests\TestCase;
-use JTD\FormSecurity\Services\ConfigurationManager;
-use JTD\FormSecurity\Services\CacheManager;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
+use JTD\FormSecurity\Services\CacheManager;
+use JTD\FormSecurity\Services\ConfigurationManager;
+use JTD\FormSecurity\Tests\TestCase;
 use Mockery;
 use PHPUnit\Framework\Attributes\Group;
-use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\BufferedOutput;
 
 #[Group('epic-001')]
 #[Group('foundation-infrastructure')]
@@ -38,22 +38,25 @@ use Symfony\Component\Console\Input\ArrayInput;
 abstract class BaseCommandTestCase extends TestCase
 {
     protected ConfigurationManager $mockConfigManager;
+
     protected CacheManager $mockCacheManager;
+
     protected BufferedOutput $output;
+
     protected ArrayInput $input;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Create mock services
         $this->mockConfigManager = Mockery::mock(ConfigurationManager::class);
         $this->mockCacheManager = Mockery::mock(CacheManager::class);
-        
+
         // Set up console I/O
-        $this->output = new BufferedOutput();
+        $this->output = new BufferedOutput;
         $this->input = new ArrayInput([]);
-        
+
         // Bind mocks to container
         $this->app->instance(ConfigurationManager::class, $this->mockConfigManager);
         $this->app->instance(CacheManager::class, $this->mockCacheManager);
@@ -119,6 +122,7 @@ abstract class BaseCommandTestCase extends TestCase
         // Use the TestCase artisan method for better testing integration
         $result = $this->artisan($commandName, $parameters);
         $result->run();
+
         return $result->getExitCode();
     }
 
@@ -130,7 +134,7 @@ abstract class BaseCommandTestCase extends TestCase
         $this->mockConfigManager
             ->shouldReceive('isConfigured')
             ->andReturn(true);
-            
+
         $this->mockConfigManager
             ->shouldReceive('validateConfiguration')
             ->andReturn(true);
@@ -144,7 +148,7 @@ abstract class BaseCommandTestCase extends TestCase
         $this->mockConfigManager
             ->shouldReceive('isConfigured')
             ->andReturn(false);
-            
+
         $this->mockConfigManager
             ->shouldReceive('validateConfiguration')
             ->andReturn(false);
@@ -158,7 +162,7 @@ abstract class BaseCommandTestCase extends TestCase
         $this->mockCacheManager
             ->shouldReceive('isHealthy')
             ->andReturn(true);
-            
+
         $this->mockCacheManager
             ->shouldReceive('getStats')
             ->andReturn([
@@ -166,7 +170,7 @@ abstract class BaseCommandTestCase extends TestCase
                 'misses' => 10,
                 'hit_ratio' => 90.9,
                 'memory_usage' => 1024,
-                'entries' => 50
+                'entries' => 50,
             ]);
     }
 
@@ -178,7 +182,7 @@ abstract class BaseCommandTestCase extends TestCase
         $this->mockCacheManager
             ->shouldReceive('isHealthy')
             ->andReturn(false);
-            
+
         $this->mockCacheManager
             ->shouldReceive('getStats')
             ->andThrow(new \Exception('Cache unavailable'));
@@ -232,7 +236,7 @@ abstract class BaseCommandTestCase extends TestCase
         return [
             'test_key' => 'test_value',
             'timestamp' => time(),
-            'random' => rand(1000, 9999)
+            'random' => rand(1000, 9999),
         ];
     }
 
@@ -253,8 +257,8 @@ abstract class BaseCommandTestCase extends TestCase
         // Check for progress bar indicators in output
         $output = $this->getCommandOutput();
         $this->assertTrue(
-            str_contains($output, 'Progress:') || 
-            str_contains($output, '[') || 
+            str_contains($output, 'Progress:') ||
+            str_contains($output, '[') ||
             str_contains($output, '%'),
             'Progress bar should be displayed'
         );
@@ -266,11 +270,11 @@ abstract class BaseCommandTestCase extends TestCase
     protected function assertTableOutput(array $expectedHeaders = []): void
     {
         $output = $this->getCommandOutput();
-        
+
         // Check for table formatting characters
         $this->assertStringContainsString('|', $output, 'Table should contain column separators');
         $this->assertStringContainsString('-', $output, 'Table should contain row separators');
-        
+
         // Check for expected headers if provided
         foreach ($expectedHeaders as $header) {
             $this->assertStringContainsString($header, $output, "Table should contain header: {$header}");

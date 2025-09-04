@@ -16,7 +16,6 @@ declare(strict_types=1);
 namespace Tests\Integration;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use JTD\FormSecurity\Enums\BlockReason;
 use JTD\FormSecurity\Models\BlockedSubmission;
 use JTD\FormSecurity\Models\IpReputation;
@@ -47,8 +46,11 @@ class PerformanceValidationTest extends TestCase
     use RefreshDatabase;
 
     private const MEMORY_LIMIT_MB = 50;
+
     private const MIN_WRITES_PER_MINUTE = 1000;
+
     private const MAX_QUERY_TIME_MS = 100;
+
     private const MAX_RESPONSE_TIME_MS = 200;
 
     #[Test]
@@ -69,7 +71,7 @@ class PerformanceValidationTest extends TestCase
         // Process large collections
         $groupedByForm = $submissions->groupBy('form_identifier');
         $sortedByRisk = $submissions->sortByDesc('risk_score');
-        $filteredHighRisk = $submissions->filter(fn($s) => $s->risk_score > 70);
+        $filteredHighRisk = $submissions->filter(fn ($s) => $s->risk_score > 70);
 
         // Cache operations
         foreach ($patterns->take(50) as $pattern) {
@@ -84,8 +86,8 @@ class PerformanceValidationTest extends TestCase
         $memoryUsed = ($peakMemory - $initialMemory) / 1024 / 1024; // Convert to MB
 
         // Memory validation
-        $this->assertLessThan(self::MEMORY_LIMIT_MB, $memoryUsed, 
-            "Memory usage ({$memoryUsed}MB) should be under " . self::MEMORY_LIMIT_MB . "MB");
+        $this->assertLessThan(self::MEMORY_LIMIT_MB, $memoryUsed,
+            "Memory usage ({$memoryUsed}MB) should be under ".self::MEMORY_LIMIT_MB.'MB');
 
         // Verify operations completed successfully
         $this->assertIsArray($analytics);
@@ -106,11 +108,11 @@ class PerformanceValidationTest extends TestCase
         // Perform batch writes to test database performance
         for ($batch = 0; $batch < $batches; $batch++) {
             $batchData = [];
-            
+
             for ($i = 0; $i < $batchSize && ($batch * $batchSize + $i) < $targetWrites; $i++) {
                 $batchData[] = [
-                    'form_identifier' => 'perf-test-form-' . ($i % 10),
-                    'ip_address' => '10.0.' . ($batch % 255) . '.' . ($i % 255),
+                    'form_identifier' => 'perf-test-form-'.($i % 10),
+                    'ip_address' => '10.0.'.($batch % 255).'.'.($i % 255),
                     'block_reason' => BlockReason::SPAM_PATTERN->value,
                     'risk_score' => rand(20, 90),
                     'blocked_at' => now()->subMinutes(rand(1, 60)),
@@ -129,8 +131,8 @@ class PerformanceValidationTest extends TestCase
 
         // Performance assertions
         $this->assertGreaterThanOrEqual(self::MIN_WRITES_PER_MINUTE, $writesPerMinute,
-            "Database should handle at least " . self::MIN_WRITES_PER_MINUTE . " writes per minute. Actual: {$writesPerMinute}");
-        
+            'Database should handle at least '.self::MIN_WRITES_PER_MINUTE." writes per minute. Actual: {$writesPerMinute}");
+
         $this->assertEquals($targetWrites, BlockedSubmission::count(),
             'All writes should be completed successfully');
 
@@ -149,24 +151,24 @@ class PerformanceValidationTest extends TestCase
 
         // Test various query patterns and measure response times
         $queries = [
-            'Recent submissions' => fn() => BlockedSubmission::where('blocked_at', '>=', now()->subHours(24))->get(),
-            'High risk submissions' => fn() => BlockedSubmission::where('risk_score', '>', 70)->limit(100)->get(),
-            'Active patterns' => fn() => SpamPattern::active()->orderBy('priority')->get(),
-            'Low reputation IPs' => fn() => IpReputation::where('reputation_score', '<=', 30)->limit(50)->get(),
-            'Analytics summary' => fn() => BlockedSubmission::getAnalyticsSummary(now()->subDays(7), now()),
-            'Top countries' => fn() => BlockedSubmission::getTopByField('country_code', now()->subDays(7), now(), 10),
+            'Recent submissions' => fn () => BlockedSubmission::where('blocked_at', '>=', now()->subHours(24))->get(),
+            'High risk submissions' => fn () => BlockedSubmission::where('risk_score', '>', 70)->limit(100)->get(),
+            'Active patterns' => fn () => SpamPattern::active()->orderBy('priority')->get(),
+            'Low reputation IPs' => fn () => IpReputation::where('reputation_score', '<=', 30)->limit(50)->get(),
+            'Analytics summary' => fn () => BlockedSubmission::getAnalyticsSummary(now()->subDays(7), now()),
+            'Top countries' => fn () => BlockedSubmission::getTopByField('country_code', now()->subDays(7), now(), 10),
         ];
 
         foreach ($queries as $queryName => $queryFunction) {
             $startTime = microtime(true);
             $result = $queryFunction();
             $endTime = microtime(true);
-            
+
             $queryTime = ($endTime - $startTime) * 1000; // Convert to milliseconds
-            
+
             $this->assertLessThan(self::MAX_QUERY_TIME_MS, $queryTime,
-                "Query '{$queryName}' took {$queryTime}ms, should be under " . self::MAX_QUERY_TIME_MS . "ms");
-            
+                "Query '{$queryName}' took {$queryTime}ms, should be under ".self::MAX_QUERY_TIME_MS.'ms');
+
             $this->assertNotNull($result, "Query '{$queryName}' should return valid results");
         }
     }
@@ -175,7 +177,7 @@ class PerformanceValidationTest extends TestCase
     public function it_validates_epic_success_criteria(): void
     {
         // Epic-001 Success Criteria Validation
-        
+
         // 1. System can handle 10,000+ submissions per day
         $dailyCapacityTest = $this->validateDailyCapacity();
         $this->assertTrue($dailyCapacityTest, 'System should handle 10,000+ submissions per day');
@@ -231,7 +233,7 @@ class PerformanceValidationTest extends TestCase
             $maxAllowedTime = self::MAX_RESPONSE_TIME_MS * ($itemCount / 100) * 10; // 10x more lenient
             $this->assertLessThan($maxAllowedTime, $processingTime,
                 "Processing time for {$testName} should scale appropriately. Actual: {$processingTime}ms, Max: {$maxAllowedTime}ms");
-            
+
             $this->assertLessThan(self::MEMORY_LIMIT_MB, $memoryUsed,
                 "Memory usage for {$testName} should stay under limit");
 
@@ -252,13 +254,13 @@ class PerformanceValidationTest extends TestCase
         // Simulate sustained operations with resource monitoring
         for ($i = 0; $i < 20; $i++) {
             $iterationStart = memory_get_usage(true);
-            
+
             // Create batch of data
             $batch = BlockedSubmission::factory()->count(50)->create();
-            
+
             // Perform operations
             $analytics = BlockedSubmission::getAnalyticsSummary(now()->subDays(1), now());
-            
+
             // Record resource usage
             $iterationEnd = memory_get_usage(true);
             $resourceReadings[] = [
@@ -276,20 +278,20 @@ class PerformanceValidationTest extends TestCase
 
         // Resource utilization assertions
         $this->assertLessThan(self::MEMORY_LIMIT_MB, $maxMemory,
-            "Peak memory usage should stay under limit");
-        
+            'Peak memory usage should stay under limit');
+
         $this->assertLessThan(5, $avgMemoryDelta,
-            "Average memory delta per iteration should be reasonable");
-        
+            'Average memory delta per iteration should be reasonable');
+
         $this->assertEquals(1000, $finalRecordCount,
-            "All records should be processed correctly");
+            'All records should be processed correctly');
 
         // Verify resource cleanup
         $finalMemory = memory_get_usage(true);
         $totalMemoryIncrease = ($finalMemory - $initialMemory) / 1024 / 1024;
-        
+
         $this->assertLessThan(self::MEMORY_LIMIT_MB, $totalMemoryIncrease,
-            "Total memory increase should be within acceptable limits");
+            'Total memory increase should be within acceptable limits');
     }
 
     /**
@@ -299,15 +301,15 @@ class PerformanceValidationTest extends TestCase
     {
         $testSubmissions = 1000; // Scaled down for test performance
         $startTime = microtime(true);
-        
+
         BlockedSubmission::factory()->count($testSubmissions)->create();
-        
+
         $endTime = microtime(true);
         $processingTime = $endTime - $startTime;
-        
+
         // Extrapolate to daily capacity
         $estimatedDailyCapacity = ($testSubmissions / $processingTime) * 86400; // 24 hours in seconds
-        
+
         return $estimatedDailyCapacity >= 10000;
     }
 
@@ -317,15 +319,15 @@ class PerformanceValidationTest extends TestCase
     protected function validateMemoryUsage(): bool
     {
         $initialMemory = memory_get_usage(true);
-        
+
         // Create substantial data load
         SpamPattern::factory()->count(100)->create();
         BlockedSubmission::factory()->count(500)->create();
         IpReputation::factory()->count(100)->create();
-        
+
         $peakMemory = memory_get_peak_usage(true);
         $memoryUsed = ($peakMemory - $initialMemory) / 1024 / 1024;
-        
+
         return $memoryUsed < self::MEMORY_LIMIT_MB;
     }
 
@@ -336,12 +338,12 @@ class PerformanceValidationTest extends TestCase
     {
         $startTime = microtime(true);
         $testWrites = 100; // Scaled down for test performance
-        
+
         BlockedSubmission::factory()->count($testWrites)->create();
-        
+
         $endTime = microtime(true);
         $writesPerMinute = ($testWrites / ($endTime - $startTime)) * 60;
-        
+
         return $writesPerMinute >= self::MIN_WRITES_PER_MINUTE;
     }
 
@@ -386,14 +388,14 @@ class PerformanceValidationTest extends TestCase
     protected function validateDataIntegrity(): bool
     {
         $initialCount = BlockedSubmission::count();
-        
+
         // Create test data
         $testSubmissions = BlockedSubmission::factory()->count(100)->create();
-        
+
         // Verify all data was created
         $finalCount = BlockedSubmission::count();
         $expectedCount = $initialCount + 100;
-        
+
         return $finalCount === $expectedCount;
     }
 }

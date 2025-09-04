@@ -422,7 +422,12 @@ class ConfigurationManager implements ConfigurationManagerInterface
                 return $this->cache->forget($cacheKey);
             } else {
                 // Clear all configuration cache
-                $this->cache->flush();
+                if (method_exists($this->cache, 'flush')) {
+                    $this->cache->flush();
+                } else {
+                    // Fallback for cache stores that don't support flush
+                    $this->cache->clear();
+                }
 
                 return true;
             }
@@ -479,7 +484,7 @@ class ConfigurationManager implements ConfigurationManagerInterface
             'old_value' => $oldValue?->getSafeValue(),
             'new_value' => $newValue->getSafeValue(),
             'timestamp' => new \DateTimeImmutable,
-            'user_id' => auth()->id(),
+            'user_id' => auth()->check() ? auth()->id() : null,
         ];
 
         // Keep only last 1000 changes
@@ -800,8 +805,8 @@ class ConfigurationManager implements ConfigurationManagerInterface
      */
     protected function calculateCacheHitRatio(): float
     {
-        $hits = $this->performanceMetrics['cache_hits'];
-        $misses = $this->performanceMetrics['cache_misses'];
+        $hits = (int) $this->performanceMetrics['cache_hits'];
+        $misses = (int) $this->performanceMetrics['cache_misses'];
         $total = $hits + $misses;
 
         return $total > 0 ? $hits / $total : 0.0;

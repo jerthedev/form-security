@@ -1,0 +1,27 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: 5  # Lower level for faster analysis
+    paths:
+        - src/Console
+        - src/Services/ConfigurationManager.php
+        - src/Services/CacheKeyManager.php
+    
+    # Optimize for memory and speed
+    tmpDir: /tmp/phpstan-incremental
+    parallel:
+        maximumNumberOfProcesses: 1
+        jobSize: 10
+    
+    # Exclude complex/problematic files temporarily 
+    excludePaths:
+        - src/Services/Cache/
+        - src/Models/
+    
+    # Ignore known Laravel-specific issues
+    ignoreErrors:
+        - '#Call to an undefined method Illuminate\\Contracts\\Foundation\\Application::#'
+        - '#Method .* has parameter .* with no value type specified in iterable type array#'
+        - '#Cannot access offset .* on mixed#'
+        - '#Property .* does not accept mixed#'

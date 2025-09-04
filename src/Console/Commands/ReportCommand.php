@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace JTD\FormSecurity\Console\Commands;
 
+use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
-use JTD\FormSecurity\Services\ConfigurationManager;
-use JTD\FormSecurity\Services\CacheManager;
-use Carbon\Carbon;
 
 /**
  * FormSecurity analytics report command.
@@ -57,7 +55,7 @@ class ReportCommand extends FormSecurityCommand
         $this->newLine();
 
         // Validate inputs
-        if (!$this->validateInputs($type, $format, $period)) {
+        if (! $this->validateInputs($type, $format, $period)) {
             return Command::FAILURE;
         }
 
@@ -74,7 +72,8 @@ class ReportCommand extends FormSecurityCommand
 
             return Command::SUCCESS;
         } catch (\Exception $e) {
-            $this->displayError('Report generation failed: ' . $e->getMessage());
+            $this->displayError('Report generation failed: '.$e->getMessage());
+
             return Command::FAILURE;
         }
     }
@@ -87,18 +86,21 @@ class ReportCommand extends FormSecurityCommand
         $validTypes = ['summary', 'submissions', 'blocks', 'performance', 'security'];
         $validFormats = ['table', 'json', 'csv', 'html'];
 
-        if (!in_array($type, $validTypes)) {
-            $this->displayError("Invalid report type: {$type}. Valid types: " . implode(', ', $validTypes));
+        if (! in_array($type, $validTypes)) {
+            $this->displayError("Invalid report type: {$type}. Valid types: ".implode(', ', $validTypes));
+
             return false;
         }
 
-        if (!in_array($format, $validFormats)) {
-            $this->displayError("Invalid format: {$format}. Valid formats: " . implode(', ', $validFormats));
+        if (! in_array($format, $validFormats)) {
+            $this->displayError("Invalid format: {$format}. Valid formats: ".implode(', ', $validFormats));
+
             return false;
         }
 
         if ($period < 1 || $period > 365) {
             $this->displayError("Invalid period: {$period}. Must be between 1 and 365 days");
+
             return false;
         }
 
@@ -111,7 +113,7 @@ class ReportCommand extends FormSecurityCommand
     protected function generateReportData(string $type, int $period, array $filters, bool $detailed): void
     {
         $this->line("Generating {$type} report for the last {$period} days...");
-        
+
         $progressBar = $this->createProgressBar(1);
         $progressBar->start();
 
@@ -213,7 +215,7 @@ class ReportCommand extends FormSecurityCommand
     protected function generatePerformanceReport(Carbon $startDate, Carbon $endDate, array $filters, bool $detailed): void
     {
         $cacheStats = $this->cacheManager->getStats();
-        
+
         $this->reportData['data'] = [
             'cache_performance' => [
                 'hit_ratio' => $cacheStats['hit_ratio'] ?? 0,
@@ -268,7 +270,7 @@ class ReportCommand extends FormSecurityCommand
         $type = $this->reportData['type'];
         $data = $this->reportData['data'];
 
-        $this->line("<comment>" . ucfirst($type) . " Report</comment>");
+        $this->line('<comment>'.ucfirst($type).' Report</comment>');
         $this->line("Period: {$this->reportData['start_date']} to {$this->reportData['end_date']}");
         $this->newLine();
 
@@ -291,31 +293,31 @@ class ReportCommand extends FormSecurityCommand
         $rows = [
             ['Total Submissions', number_format($data['overview']['total_submissions'] ?? 0)],
             ['Blocked Submissions', number_format($data['overview']['blocked_submissions'] ?? 0)],
-            ['Block Rate', ($data['overview']['block_rate'] ?? 0) . '%'],
+            ['Block Rate', ($data['overview']['block_rate'] ?? 0).'%'],
             ['Unique IPs', number_format($data['overview']['unique_ips'] ?? 0)],
             ['Countries', number_format($data['overview']['countries'] ?? 0)],
         ];
         $this->displayTable($headers, $rows, 'Overview Statistics');
 
         // Top Countries
-        if (!empty($data['top_countries'])) {
+        if (! empty($data['top_countries'])) {
             $headers = ['Country', 'Submissions', 'Percentage'];
             $rows = [];
             $total = array_sum($data['top_countries']);
-            
+
             foreach ($data['top_countries'] as $country => $count) {
                 $percentage = $total > 0 ? round(($count / $total) * 100, 1) : 0;
-                $rows[] = [$country, number_format($count), $percentage . '%'];
+                $rows[] = [$country, number_format($count), $percentage.'%'];
             }
             $this->displayTable($headers, $rows, 'Top Countries');
         }
 
         // Performance Summary
-        if (!empty($data['performance'])) {
+        if (! empty($data['performance'])) {
             $headers = ['Metric', 'Value'];
             $rows = [
-                ['Avg Response Time', ($data['performance']['avg_response_time'] ?? 0) . 'ms'],
-                ['Cache Hit Ratio', ($data['performance']['cache_hit_ratio'] ?? 0) . '%'],
+                ['Avg Response Time', ($data['performance']['avg_response_time'] ?? 0).'ms'],
+                ['Cache Hit Ratio', ($data['performance']['cache_hit_ratio'] ?? 0).'%'],
                 ['Database Queries/sec', number_format($data['performance']['db_queries_per_sec'] ?? 0)],
             ];
             $this->displayTable($headers, $rows, 'Performance Summary');
@@ -331,10 +333,10 @@ class ReportCommand extends FormSecurityCommand
         $total = $data['total_submissions'];
         $rows = [];
 
-        if (!empty($data['status_breakdown'])) {
+        if (! empty($data['status_breakdown'])) {
             foreach ($data['status_breakdown'] as $status => $count) {
                 $percentage = $total > 0 ? round(($count / $total) * 100, 1) : 0;
-                $rows[] = [ucfirst($status), number_format($count), $percentage . '%'];
+                $rows[] = [ucfirst($status), number_format($count), $percentage.'%'];
             }
         }
 
@@ -350,10 +352,10 @@ class ReportCommand extends FormSecurityCommand
         $total = $data['total_blocks'];
         $rows = [];
 
-        if (!empty($data['reason_breakdown'])) {
+        if (! empty($data['reason_breakdown'])) {
             foreach ($data['reason_breakdown'] as $reason => $count) {
                 $percentage = $total > 0 ? round(($count / $total) * 100, 1) : 0;
-                $rows[] = [ucfirst($reason), number_format($count), $percentage . '%'];
+                $rows[] = [ucfirst($reason), number_format($count), $percentage.'%'];
             }
         }
 
@@ -366,13 +368,13 @@ class ReportCommand extends FormSecurityCommand
     protected function displayPerformanceTable(array $data): void
     {
         $cache = $data['cache_performance'];
-        
+
         $headers = ['Metric', 'Value'];
         $rows = [
-            ['Cache Hit Ratio', $cache['hit_ratio'] . '%'],
-            ['Cache Miss Ratio', $cache['miss_ratio'] . '%'],
+            ['Cache Hit Ratio', $cache['hit_ratio'].'%'],
+            ['Cache Miss Ratio', $cache['miss_ratio'].'%'],
             ['Total Cache Entries', number_format($cache['total_entries'])],
-            ['Memory Usage', $this->formatBytes(is_array($cache['memory_usage']) ? 0 : (int)$cache['memory_usage'])],
+            ['Memory Usage', $this->formatBytes(is_array($cache['memory_usage']) ? 0 : (int) $cache['memory_usage'])],
         ];
 
         $this->displayTable($headers, $rows, 'Cache Performance');
@@ -383,10 +385,10 @@ class ReportCommand extends FormSecurityCommand
      */
     protected function displaySecurityTable(array $data): void
     {
-        if (!empty($data['threat_summary'])) {
+        if (! empty($data['threat_summary'])) {
             $headers = ['Threat Type', 'Count', 'Severity'];
             $rows = [];
-            
+
             foreach ($data['threat_summary'] as $threat => $info) {
                 $rows[] = [
                     ucfirst($threat),
@@ -394,7 +396,7 @@ class ReportCommand extends FormSecurityCommand
                     ucfirst($info['severity'] ?? 'unknown'),
                 ];
             }
-            
+
             $this->displayTable($headers, $rows, 'Security Threats');
         }
     }
@@ -420,22 +422,22 @@ class ReportCommand extends FormSecurityCommand
      */
     protected function generateCsvContent(): string
     {
-        $csv = "FormSecurity Report - " . ucfirst($this->reportData['type']) . "\n";
+        $csv = 'FormSecurity Report - '.ucfirst($this->reportData['type'])."\n";
         $csv .= "Period: {$this->reportData['start_date']} to {$this->reportData['end_date']}\n";
         $csv .= "Generated: {$this->reportData['generated_at']}\n\n";
 
         // Add data based on report type
         $data = $this->reportData['data'];
-        
+
         foreach ($data as $section => $values) {
-            $csv .= ucfirst(str_replace('_', ' ', $section)) . "\n";
-            
+            $csv .= ucfirst(str_replace('_', ' ', $section))."\n";
+
             if (is_array($values)) {
                 foreach ($values as $key => $value) {
                     $csv .= "{$key},{$value}\n";
                 }
             }
-            
+
             $csv .= "\n";
         }
 
@@ -447,26 +449,27 @@ class ReportCommand extends FormSecurityCommand
      */
     protected function generateHtmlContent(): string
     {
-        $html = "<!DOCTYPE html><html><head><title>FormSecurity Report</title></head><body>";
-        $html .= "<h1>FormSecurity " . ucfirst($this->reportData['type']) . " Report</h1>";
+        $html = '<!DOCTYPE html><html><head><title>FormSecurity Report</title></head><body>';
+        $html .= '<h1>FormSecurity '.ucfirst($this->reportData['type']).' Report</h1>';
         $html .= "<p>Period: {$this->reportData['start_date']} to {$this->reportData['end_date']}</p>";
         $html .= "<p>Generated: {$this->reportData['generated_at']}</p>";
-        
+
         // Add data sections
         $data = $this->reportData['data'];
         foreach ($data as $section => $values) {
-            $html .= "<h2>" . ucfirst(str_replace('_', ' ', $section)) . "</h2>";
-            
+            $html .= '<h2>'.ucfirst(str_replace('_', ' ', $section)).'</h2>';
+
             if (is_array($values)) {
                 $html .= "<table border='1'>";
                 foreach ($values as $key => $value) {
                     $html .= "<tr><td>{$key}</td><td>{$value}</td></tr>";
                 }
-                $html .= "</table>";
+                $html .= '</table>';
             }
         }
-        
-        $html .= "</body></html>";
+
+        $html .= '</body></html>';
+
         return $html;
     }
 
@@ -475,10 +478,10 @@ class ReportCommand extends FormSecurityCommand
      */
     protected function generateTextContent(): string
     {
-        return "FormSecurity Report\n" . 
-               "Type: " . ucfirst($this->reportData['type']) . "\n" .
-               "Period: {$this->reportData['start_date']} to {$this->reportData['end_date']}\n" .
-               "Generated: {$this->reportData['generated_at']}\n\n" .
+        return "FormSecurity Report\n".
+               'Type: '.ucfirst($this->reportData['type'])."\n".
+               "Period: {$this->reportData['start_date']} to {$this->reportData['end_date']}\n".
+               "Generated: {$this->reportData['generated_at']}\n\n".
                print_r($this->reportData['data'], true);
     }
 
@@ -584,7 +587,7 @@ class ReportCommand extends FormSecurityCommand
                 $query->where($field, $value);
             }
         }
-        
+
         return $query;
     }
 

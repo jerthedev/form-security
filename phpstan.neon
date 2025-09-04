@@ -1,0 +1,22 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: 7
+    paths:
+        - src
+    
+    # Memory and performance optimization
+    tmpDir: /tmp/phpstan-formsecurity
+    parallel:
+        maximumNumberOfProcesses: 1
+    bootstrapFiles: []
+    reportUnmatchedIgnoredErrors: false
+    
+    # Exclude problematic paths
+    excludePaths: []
+    
+    # Ignore specific errors that are Laravel framework related
+    ignoreErrors:
+        # Defensive type checks in Cast classes
+        - '#Call to function is_array\(\) with array<.*> will always evaluate to true#'

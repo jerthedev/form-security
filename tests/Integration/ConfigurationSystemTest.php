@@ -22,12 +22,11 @@ namespace JTD\FormSecurity\Tests\Integration;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
 use JTD\FormSecurity\Contracts\ConfigurationManagerInterface;
-use JTD\FormSecurity\Events\ConfigurationChanged;
 use JTD\FormSecurity\Events\ConfigurationValidationFailed;
 use JTD\FormSecurity\Services\FeatureToggleService;
+use JTD\FormSecurity\Tests\TestCase;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
-use JTD\FormSecurity\Tests\TestCase;
 
 #[Group('epic-001')]
 #[Group('foundation-infrastructure')]
@@ -38,15 +37,16 @@ use JTD\FormSecurity\Tests\TestCase;
 class ConfigurationSystemTest extends TestCase
 {
     protected ConfigurationManagerInterface $configManager;
+
     protected FeatureToggleService $featureToggle;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->configManager = $this->app->make(ConfigurationManagerInterface::class);
         $this->featureToggle = $this->app->make(FeatureToggleService::class);
-        
+
         // Clear cache before each test
         Cache::flush();
         Event::fake();
@@ -57,11 +57,11 @@ class ConfigurationSystemTest extends TestCase
     {
         // Set a runtime value
         $this->configManager->set('test_key', 'runtime_value');
-        
+
         // Should get runtime value (highest priority)
         $value = $this->configManager->get('test_key');
         $this->assertEquals('runtime_value', $value);
-        
+
         // Should get file value when runtime is not set
         config(['form-security.file_key' => 'file_value']);
         $value = $this->configManager->get('file_key');
@@ -74,11 +74,11 @@ class ConfigurationSystemTest extends TestCase
         // First access should cache the value
         $value = $this->configManager->get('spam_threshold', 0.7);
         $this->assertEquals(0.7, $value);
-        
+
         // Check that value is cached
         $cached = Cache::get('form_security_config_spam_threshold');
         $this->assertNotNull($cached);
-        
+
         // Second access should use cache
         $value2 = $this->configManager->get('spam_threshold');
         $this->assertEquals(0.7, $value2);
@@ -90,10 +90,10 @@ class ConfigurationSystemTest extends TestCase
         // Cache a value
         $this->configManager->get('spam_threshold', 0.7);
         $this->assertNotNull(Cache::get('form_security_config_spam_threshold'));
-        
+
         // Change the value
         $this->configManager->set('spam_threshold', 0.8);
-        
+
         // Cache should be invalidated
         $this->assertNull(Cache::get('form_security_config_spam_threshold'));
     }
@@ -127,13 +127,13 @@ class ConfigurationSystemTest extends TestCase
         // Valid value should succeed
         $result = $this->configManager->set('spam_threshold', 0.8);
         $this->assertTrue($result);
-        
+
         // Invalid value should fail and fire validation failed event
         $result = $this->configManager->set('spam_threshold', 1.5);
         $this->assertFalse($result);
-        
+
         Event::assertDispatched(ConfigurationValidationFailed::class, function ($event) {
-            return $event->key === 'spam_threshold' && 
+            return $event->key === 'spam_threshold' &&
                    $event->value === 1.5;
         });
     }
@@ -143,7 +143,7 @@ class ConfigurationSystemTest extends TestCase
     {
         // Enable a feature with dependencies
         $result = $this->featureToggle->enable('ai_analysis');
-        
+
         // Should succeed and enable dependencies
         $this->assertTrue($result);
         $this->assertTrue($this->featureToggle->isEnabled('spam_detection')); // dependency
@@ -156,10 +156,10 @@ class ConfigurationSystemTest extends TestCase
         // Disable a feature that other features depend on
         $this->featureToggle->enable('ai_analysis');
         $this->assertTrue($this->featureToggle->isEnabled('ai_analysis'));
-        
+
         // Disable the dependency
         $this->featureToggle->disable('spam_detection');
-        
+
         // Dependent feature should also be disabled
         $this->assertFalse($this->featureToggle->isEnabled('ai_analysis'));
     }
@@ -169,26 +169,26 @@ class ConfigurationSystemTest extends TestCase
     {
         // Enable feature
         $this->featureToggle->enable('spam_detection');
-        
+
         // Execute with feature enabled
         $result = $this->featureToggle->when(
             'spam_detection',
-            fn() => 'feature_enabled',
-            fn() => 'fallback_executed'
+            fn () => 'feature_enabled',
+            fn () => 'fallback_executed'
         );
-        
+
         $this->assertEquals('feature_enabled', $result);
-        
+
         // Disable feature
         $this->featureToggle->disable('spam_detection');
-        
+
         // Execute with feature disabled
         $result = $this->featureToggle->when(
             'spam_detection',
-            fn() => 'feature_enabled',
-            fn() => 'fallback_executed'
+            fn () => 'feature_enabled',
+            fn () => 'fallback_executed'
         );
-        
+
         $this->assertEquals('fallback_executed', $result);
     }
 
@@ -198,21 +198,21 @@ class ConfigurationSystemTest extends TestCase
         // Set some configuration values
         $this->configManager->set('test_key1', 'value1');
         $this->configManager->set('test_key2', 'value2');
-        
+
         // Export configuration
         $exported = $this->configManager->exportConfiguration(['test_key1', 'test_key2']);
-        
+
         $this->assertArrayHasKey('test_key1', $exported);
         $this->assertArrayHasKey('test_key2', $exported);
         $this->assertEquals('value1', $exported['test_key1']);
         $this->assertEquals('value2', $exported['test_key2']);
-        
+
         // Clear and import
         $this->configManager->refresh();
-        
+
         $result = $this->configManager->importConfiguration($exported);
         $this->assertTrue($result);
-        
+
         // Verify imported values
         $this->assertEquals('value1', $this->configManager->get('test_key1'));
         $this->assertEquals('value2', $this->configManager->get('test_key2'));
@@ -225,10 +225,10 @@ class ConfigurationSystemTest extends TestCase
         $this->configManager->set('history_test', 'value1');
         $this->configManager->set('history_test', 'value2');
         $this->configManager->set('history_test', 'value3');
-        
+
         // Get change history
         $history = $this->configManager->getChangeHistory('history_test');
-        
+
         $this->assertCount(3, $history);
         $this->assertEquals('value3', $history[0]['new_value']); // Most recent first
         $this->assertEquals('value2', $history[1]['new_value']);
@@ -259,16 +259,16 @@ class ConfigurationSystemTest extends TestCase
         $this->configManager->get('metric_test1', 'default1');
         $this->configManager->get('metric_test2', 'default2');
         $this->configManager->get('metric_test1'); // Cache hit
-        
+
         // Get metrics
         $metrics = $this->configManager->getPerformanceMetrics();
-        
+
         $this->assertIsArray($metrics);
         $this->assertArrayHasKey('cache_hits', $metrics);
         $this->assertArrayHasKey('cache_misses', $metrics);
         $this->assertArrayHasKey('cache_hit_ratio', $metrics);
         $this->assertArrayHasKey('average_load_time', $metrics);
-        
+
         // Should have at least one cache hit
         $this->assertGreaterThan(0, $metrics['cache_hits']);
     }
@@ -278,12 +278,12 @@ class ConfigurationSystemTest extends TestCase
     {
         // Clear cache
         Cache::flush();
-        
+
         // Warm cache for specific keys
         $keys = ['spam_threshold', 'features.spam_detection'];
         $result = $this->configManager->warmCache($keys);
         $this->assertTrue($result);
-        
+
         // Verify cache is warmed
         foreach ($keys as $key) {
             $cacheKey = "form_security_config_{$key}";
@@ -300,9 +300,9 @@ class ConfigurationSystemTest extends TestCase
             'rate_limit' => ['max_attempts' => -5], // Invalid: negative
             'features' => ['ip_reputation' => true], // Missing threshold
         ];
-        
+
         $result = $this->configManager->validateConfig($config);
-        
+
         $this->assertFalse($result['valid']);
         $this->assertNotEmpty($result['errors']);
     }
@@ -312,11 +312,11 @@ class ConfigurationSystemTest extends TestCase
     {
         // Set environment variable
         putenv('FORM_SECURITY_TEST_KEY=env_value');
-        
+
         // Should get environment value when not in config
         $value = $this->configManager->getWithEnvFallback('test_key', 'FORM_SECURITY_TEST_KEY', 'default');
         $this->assertEquals('env_value', $value->value);
-        
+
         // Clean up
         putenv('FORM_SECURITY_TEST_KEY');
     }

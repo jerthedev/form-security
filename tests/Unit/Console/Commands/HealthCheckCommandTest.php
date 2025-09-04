@@ -61,10 +61,10 @@ class HealthCheckCommandTest extends TestCase
     {
         $command = app(HealthCheckCommand::class);
         $definition = $command->getDefinition();
-        
+
         // Should have expected options
         $expectedOptions = ['detailed', 'fix', 'export'];
-        
+
         foreach ($expectedOptions as $optionName) {
             $this->assertTrue($definition->hasOption($optionName), "Missing option: {$optionName}");
         }
@@ -75,7 +75,7 @@ class HealthCheckCommandTest extends TestCase
     {
         $command = app(HealthCheckCommand::class);
         $definition = $command->getDefinition();
-        
+
         $detailedOption = $definition->getOption('detailed');
         $this->assertFalse($detailedOption->acceptValue());
     }
@@ -85,7 +85,7 @@ class HealthCheckCommandTest extends TestCase
     {
         $command = app(HealthCheckCommand::class);
         $definition = $command->getDefinition();
-        
+
         $fixOption = $definition->getOption('fix');
         $this->assertFalse($fixOption->acceptValue());
     }
@@ -95,7 +95,7 @@ class HealthCheckCommandTest extends TestCase
     {
         $command = app(HealthCheckCommand::class);
         $definition = $command->getDefinition();
-        
+
         $exportOption = $definition->getOption('export');
         $this->assertTrue($exportOption->acceptValue());
     }

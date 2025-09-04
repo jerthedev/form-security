@@ -76,7 +76,7 @@ class BlockedSubmission extends BaseModel implements AnalyticsModelInterface
      */
     protected static function newFactory()
     {
-        return new \Database\Factories\BlockedSubmissionFactory();
+        return new \Database\Factories\BlockedSubmissionFactory;
     }
 
     /**

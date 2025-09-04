@@ -36,9 +36,9 @@ interface CacheManagerInterface
     /**
      * Get a value from the cache using multi-level fallback
      *
-     * @param string|CacheKey $key Cache key
-     * @param mixed $default Default value if not found
-     * @param array<CacheLevel>|null $levels Specific levels to check (null for all)
+     * @param  string|CacheKey  $key  Cache key
+     * @param  mixed  $default  Default value if not found
+     * @param  array<CacheLevel>|null  $levels  Specific levels to check (null for all)
      * @return mixed Cached value or default
      */
     public function get(string|CacheKey $key, mixed $default = null, ?array $levels = null): mixed;
@@ -46,10 +46,10 @@ interface CacheManagerInterface
     /**
      * Store a value in the cache at specified levels
      *
-     * @param string|CacheKey $key Cache key
-     * @param mixed $value Value to cache
-     * @param int|null $ttl Time to live in seconds (null for default)
-     * @param array<CacheLevel>|null $levels Levels to store at (null for all)
+     * @param  string|CacheKey  $key  Cache key
+     * @param  mixed  $value  Value to cache
+     * @param  int|null  $ttl  Time to live in seconds (null for default)
+     * @param  array<CacheLevel>|null  $levels  Levels to store at (null for all)
      * @return bool True if stored successfully
      */
     public function put(string|CacheKey $key, mixed $value, ?int $ttl = null, ?array $levels = null): bool;
@@ -57,10 +57,10 @@ interface CacheManagerInterface
     /**
      * Store a value in the cache only if it doesn't exist
      *
-     * @param string|CacheKey $key Cache key
-     * @param mixed $value Value to cache
-     * @param int|null $ttl Time to live in seconds
-     * @param array<CacheLevel>|null $levels Levels to store at
+     * @param  string|CacheKey  $key  Cache key
+     * @param  mixed  $value  Value to cache
+     * @param  int|null  $ttl  Time to live in seconds
+     * @param  array<CacheLevel>|null  $levels  Levels to store at
      * @return bool True if stored successfully
      */
     public function add(string|CacheKey $key, mixed $value, ?int $ttl = null, ?array $levels = null): bool;
@@ -68,10 +68,10 @@ interface CacheManagerInterface
     /**
      * Get a value from cache or execute callback and cache the result
      *
-     * @param string|CacheKey $key Cache key
-     * @param callable $callback Callback to execute if not cached
-     * @param int|null $ttl Time to live in seconds
-     * @param array<CacheLevel>|null $levels Levels to use
+     * @param  string|CacheKey  $key  Cache key
+     * @param  callable  $callback  Callback to execute if not cached
+     * @param  int|null  $ttl  Time to live in seconds
+     * @param  array<CacheLevel>|null  $levels  Levels to use
      * @return mixed Cached or computed value
      */
     public function remember(string|CacheKey $key, callable $callback, ?int $ttl = null, ?array $levels = null): mixed;
@@ -79,9 +79,9 @@ interface CacheManagerInterface
     /**
      * Get a value from cache or execute callback and cache forever
      *
-     * @param string|CacheKey $key Cache key
-     * @param callable $callback Callback to execute if not cached
-     * @param array<CacheLevel>|null $levels Levels to use
+     * @param  string|CacheKey  $key  Cache key
+     * @param  callable  $callback  Callback to execute if not cached
+     * @param  array<CacheLevel>|null  $levels  Levels to use
      * @return mixed Cached or computed value
      */
     public function rememberForever(string|CacheKey $key, callable $callback, ?array $levels = null): mixed;
@@ -89,8 +89,8 @@ interface CacheManagerInterface
     /**
      * Remove a value from the cache at all levels
      *
-     * @param string|CacheKey $key Cache key
-     * @param array<CacheLevel>|null $levels Specific levels to remove from
+     * @param  string|CacheKey  $key  Cache key
+     * @param  array<CacheLevel>|null  $levels  Specific levels to remove from
      * @return bool True if removed successfully
      */
     public function forget(string|CacheKey $key, ?array $levels = null): bool;
@@ -98,8 +98,8 @@ interface CacheManagerInterface
     /**
      * Check if a key exists in the cache
      *
-     * @param string|CacheKey $key Cache key
-     * @param array<CacheLevel>|null $levels Levels to check
+     * @param  string|CacheKey  $key  Cache key
+     * @param  array<CacheLevel>|null  $levels  Levels to check
      * @return bool True if key exists
      */
     public function has(string|CacheKey $key, ?array $levels = null): bool;
@@ -107,7 +107,7 @@ interface CacheManagerInterface
     /**
      * Flush all cache data at specified levels
      *
-     * @param array<CacheLevel>|null $levels Levels to flush (null for all)
+     * @param  array<CacheLevel>|null  $levels  Levels to flush (null for all)
      * @return bool True if flushed successfully
      */
     public function flush(?array $levels = null): bool;
@@ -115,7 +115,7 @@ interface CacheManagerInterface
     /**
      * Get cache statistics for performance monitoring
      *
-     * @param array<CacheLevel>|null $levels Levels to get stats for
+     * @param  array<CacheLevel>|null  $levels  Levels to get stats for
      * @return array<string, mixed> Cache statistics
      */
     public function getStats(?array $levels = null): array;
@@ -123,8 +123,8 @@ interface CacheManagerInterface
     /**
      * Warm up the cache with frequently accessed data
      *
-     * @param array<string, callable> $warmers Key-callback pairs for warming
-     * @param array<CacheLevel>|null $levels Levels to warm
+     * @param  array<string, callable>  $warmers  Key-callback pairs for warming
+     * @param  array<CacheLevel>|null  $levels  Levels to warm
      * @return array<string, bool> Results of warming operations
      */
     public function warm(array $warmers, ?array $levels = null): array;
@@ -132,8 +132,8 @@ interface CacheManagerInterface
     /**
      * Invalidate cache entries by tags
      *
-     * @param array<string> $tags Tags to invalidate
-     * @param array<CacheLevel>|null $levels Levels to invalidate at
+     * @param  array<string>  $tags  Tags to invalidate
+     * @param  array<CacheLevel>|null  $levels  Levels to invalidate at
      * @return bool True if invalidated successfully
      */
     public function invalidateByTags(array $tags, ?array $levels = null): bool;
@@ -141,8 +141,8 @@ interface CacheManagerInterface
     /**
      * Invalidate cache entries by pattern
      *
-     * @param string $pattern Key pattern to match
-     * @param array<CacheLevel>|null $levels Levels to invalidate at
+     * @param  string  $pattern  Key pattern to match
+     * @param  array<CacheLevel>|null  $levels  Levels to invalidate at
      * @return bool True if invalidated successfully
      */
     public function invalidateByPattern(string $pattern, ?array $levels = null): bool;
@@ -150,7 +150,7 @@ interface CacheManagerInterface
     /**
      * Get the cache hit ratio for performance monitoring
      *
-     * @param array<CacheLevel>|null $levels Levels to calculate ratio for
+     * @param  array<CacheLevel>|null  $levels  Levels to calculate ratio for
      * @return float Hit ratio as percentage (0.0 to 100.0)
      */
     public function getHitRatio(?array $levels = null): float;
@@ -158,7 +158,7 @@ interface CacheManagerInterface
     /**
      * Get the average response time for cache operations
      *
-     * @param array<CacheLevel>|null $levels Levels to calculate for
+     * @param  array<CacheLevel>|null  $levels  Levels to calculate for
      * @return float Average response time in milliseconds
      */
     public function getAverageResponseTime(?array $levels = null): float;
@@ -166,8 +166,8 @@ interface CacheManagerInterface
     /**
      * Enable or disable cache level
      *
-     * @param CacheLevel $level Cache level to toggle
-     * @param bool $enabled Whether to enable or disable
+     * @param  CacheLevel  $level  Cache level to toggle
+     * @param  bool  $enabled  Whether to enable or disable
      * @return bool True if toggled successfully
      */
     public function toggleLevel(CacheLevel $level, bool $enabled): bool;
@@ -175,7 +175,7 @@ interface CacheManagerInterface
     /**
      * Check if a cache level is enabled
      *
-     * @param CacheLevel $level Cache level to check
+     * @param  CacheLevel  $level  Cache level to check
      * @return bool True if enabled
      */
     public function isLevelEnabled(CacheLevel $level): bool;
@@ -190,7 +190,7 @@ interface CacheManagerInterface
     /**
      * Update cache configuration at runtime
      *
-     * @param array<string, mixed> $config Configuration updates
+     * @param  array<string, mixed>  $config  Configuration updates
      * @return bool True if updated successfully
      */
     public function updateConfiguration(array $config): bool;
@@ -198,7 +198,7 @@ interface CacheManagerInterface
     /**
      * Perform cache maintenance operations
      *
-     * @param array<string> $operations Operations to perform
+     * @param  array<string>  $operations  Operations to perform
      * @return array<string, bool> Results of maintenance operations
      */
     public function maintenance(array $operations = ['cleanup', 'optimize']): array;
@@ -206,7 +206,7 @@ interface CacheManagerInterface
     /**
      * Get cache size information
      *
-     * @param array<CacheLevel>|null $levels Levels to get size for
+     * @param  array<CacheLevel>|null  $levels  Levels to get size for
      * @return array<string, int> Size information in bytes
      */
     public function getSize(?array $levels = null): array;
@@ -214,7 +214,7 @@ interface CacheManagerInterface
     /**
      * Set cache tags for subsequent operations
      *
-     * @param array<string> $tags Tags to set
+     * @param  array<string>  $tags  Tags to set
      * @return self Fluent interface
      */
     public function tags(array $tags): self;
@@ -222,7 +222,7 @@ interface CacheManagerInterface
     /**
      * Set cache prefix for subsequent operations
      *
-     * @param string $prefix Prefix to set
+     * @param  string  $prefix  Prefix to set
      * @return self Fluent interface
      */
     public function prefix(string $prefix): self;

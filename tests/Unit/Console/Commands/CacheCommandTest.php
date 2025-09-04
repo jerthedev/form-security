@@ -61,10 +61,10 @@ class CacheCommandTest extends TestCase
     {
         $command = app(CacheCommand::class);
         $definition = $command->getDefinition();
-        
+
         // Should have 'action' argument
         $this->assertTrue($definition->hasArgument('action'));
-        
+
         $actionArgument = $definition->getArgument('action');
         $this->assertEquals('action', $actionArgument->getName());
         $this->assertTrue($actionArgument->isRequired());
@@ -75,10 +75,10 @@ class CacheCommandTest extends TestCase
     {
         $command = app(CacheCommand::class);
         $definition = $command->getDefinition();
-        
+
         // Should have expected options
         $expectedOptions = ['level', 'force', 'detailed'];
-        
+
         foreach ($expectedOptions as $optionName) {
             $this->assertTrue($definition->hasOption($optionName), "Missing option: {$optionName}");
         }
@@ -89,7 +89,7 @@ class CacheCommandTest extends TestCase
     {
         $command = app(CacheCommand::class);
         $definition = $command->getDefinition();
-        
+
         $levelOption = $definition->getOption('level');
         $this->assertTrue($levelOption->isArray());
     }
@@ -99,7 +99,7 @@ class CacheCommandTest extends TestCase
     {
         $command = app(CacheCommand::class);
         $definition = $command->getDefinition();
-        
+
         $forceOption = $definition->getOption('force');
         $this->assertFalse($forceOption->acceptValue());
     }
@@ -109,7 +109,7 @@ class CacheCommandTest extends TestCase
     {
         $command = app(CacheCommand::class);
         $definition = $command->getDefinition();
-        
+
         $detailedOption = $definition->getOption('detailed');
         $this->assertFalse($detailedOption->acceptValue());
     }

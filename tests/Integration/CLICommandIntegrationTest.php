@@ -49,7 +49,7 @@ class CLICommandIntegrationTest extends TestCase
         $testData = [
             'user:123' => ['name' => 'John Doe', 'email' => 'john@example.com'],
             'product:456' => ['name' => 'Test Product', 'price' => 99.99],
-            'session:abc' => ['user_id' => 123, 'expires' => time() + 3600]
+            'session:abc' => ['user_id' => 123, 'expires' => time() + 3600],
         ];
 
         foreach ($testData as $key => $value) {
@@ -137,7 +137,7 @@ class CLICommandIntegrationTest extends TestCase
         // 3. Verify cache system is functional after installation
         $testKey = 'post_install_test';
         $testValue = 'installation_successful';
-        
+
         $this->assertTrue($this->cacheManager->put($testKey, $testValue, 300));
         $this->assertEquals($testValue, $this->cacheManager->get($testKey));
 
@@ -222,9 +222,9 @@ class CLICommandIntegrationTest extends TestCase
         for ($i = 0; $i < 20; $i++) {
             $key = "perf_test_key_{$i}";
             $value = "perf_test_value_{$i}";
-            
+
             $this->cacheManager->put($key, $value, 300);
-            
+
             // Generate some cache hits
             for ($j = 0; $j < 3; $j++) {
                 $this->cacheManager->get($key);
@@ -261,7 +261,7 @@ class CLICommandIntegrationTest extends TestCase
 
         // 2. Test that commands handle concurrent-like access patterns
         // (Simulated since we can't run truly concurrent commands in PHPUnit)
-        
+
         // Run stats command
         $this->artisan('form-security:cache stats')
             ->expectsOutputToContain('Cache Statistics')
@@ -330,13 +330,13 @@ class CLICommandIntegrationTest extends TestCase
     protected function tearDown(): void
     {
         $this->cacheManager->flush();
-        
+
         // Clean up any published config files
         $configFile = config_path('form-security.php');
         if (file_exists($configFile)) {
             unlink($configFile);
         }
-        
+
         parent::tearDown();
     }
 }

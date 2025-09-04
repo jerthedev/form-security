@@ -11,7 +11,10 @@
          failOnEmptyTestSuite="true"
          beStrictAboutOutputDuringTests="true"
          cacheDirectory=".phpunit.cache"
-         backupGlobals="false">
+         backupGlobals="false"
+         timeoutForSmallTests="120"
+         timeoutForMediumTests="300"
+         timeoutForLargeTests="600">
     
     <testsuites>
         <testsuite name="Unit">

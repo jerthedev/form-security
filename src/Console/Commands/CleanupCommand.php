@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace JTD\FormSecurity\Console\Commands;
 
+use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
-use JTD\FormSecurity\Services\ConfigurationManager;
-use JTD\FormSecurity\Services\CacheManager;
-use Carbon\Carbon;
 
 /**
  * FormSecurity cleanup command.
@@ -68,20 +66,22 @@ class CleanupCommand extends FormSecurityCommand
         // Validate age threshold
         if ($days < 1) {
             $this->displayError('Age threshold must be at least 1 day');
+
             return Command::FAILURE;
         }
 
         // Show cleanup plan
         $this->displayCleanupPlan($types, $days);
 
-        if (!$force && !$dryRun && !$this->confirmAction('Proceed with cleanup?', false)) {
+        if (! $force && ! $dryRun && ! $this->confirmAction('Proceed with cleanup?', false)) {
             $this->info('Cleanup cancelled');
+
             return Command::SUCCESS;
         }
 
         try {
             $cutoffDate = Carbon::now()->subDays($days);
-            
+
             foreach ($types as $type) {
                 if ($type === 'all') {
                     $this->cleanupOldRecords($cutoffDate, $batchSize, $dryRun);
@@ -100,10 +100,11 @@ class CleanupCommand extends FormSecurityCommand
             }
 
             $this->displayCleanupSummary($dryRun);
-            
+
             return Command::SUCCESS;
         } catch (\Exception $e) {
-            $this->displayError('Cleanup failed: ' . $e->getMessage());
+            $this->displayError('Cleanup failed: '.$e->getMessage());
+
             return Command::FAILURE;
         }
     }
@@ -116,13 +117,13 @@ class CleanupCommand extends FormSecurityCommand
         $this->line('<comment>Cleanup Plan</comment>');
         $this->line('─────────────────────────────────────────────────────────────');
         $this->line("Age Threshold: {$days} days");
-        $this->line("Cleanup Types: " . implode(', ', $types));
-        $this->line("Cutoff Date: " . Carbon::now()->subDays($days)->format('Y-m-d H:i:s'));
+        $this->line('Cleanup Types: '.implode(', ', $types));
+        $this->line('Cutoff Date: '.Carbon::now()->subDays($days)->format('Y-m-d H:i:s'));
         $this->newLine();
 
         // Show estimated cleanup sizes
         $estimates = $this->getCleanupEstimates($days);
-        
+
         $headers = ['Category', 'Items to Clean', 'Estimated Size'];
         $rows = [
             ['Old Records', number_format($estimates['records']), $this->formatBytes($estimates['records_size'])],
@@ -140,7 +141,7 @@ class CleanupCommand extends FormSecurityCommand
     protected function getCleanupEstimates(int $days): array
     {
         $cutoffDate = Carbon::now()->subDays($days);
-        
+
         try {
             // Estimate old records
             $recordsCount = 0;
@@ -156,12 +157,12 @@ class CleanupCommand extends FormSecurityCommand
                 $recordsCount = 0;
                 $recordsSize = 0;
             }
-            
+
             // Estimate temporary files
             $tempPath = storage_path('app/form-security/temp');
             $tempFiles = 0;
             $tempSize = 0;
-            
+
             if (File::exists($tempPath)) {
                 $files = File::allFiles($tempPath);
                 foreach ($files as $file) {
@@ -171,14 +172,14 @@ class CleanupCommand extends FormSecurityCommand
                     }
                 }
             }
-            
+
             // Estimate log files
             $logPath = storage_path('logs');
             $logFiles = 0;
             $logSize = 0;
-            
+
             if (File::exists($logPath)) {
-                $files = File::glob($logPath . '/form-security-*.log');
+                $files = File::glob($logPath.'/form-security-*.log');
                 foreach ($files as $file) {
                     if (filemtime($file) < $cutoffDate->timestamp) {
                         $logFiles++;
@@ -186,12 +187,12 @@ class CleanupCommand extends FormSecurityCommand
                     }
                 }
             }
-            
+
             // Estimate cache entries
             $cacheStats = $this->cacheManager->getStats();
             $cacheEntries = $cacheStats['total_entries'] ?? 0;
             $cacheSize = $cacheStats['cache_size'] ?? 0;
-            
+
             return [
                 'records' => $recordsCount,
                 'records_size' => $recordsSize,
@@ -222,21 +223,21 @@ class CleanupCommand extends FormSecurityCommand
     protected function cleanupOldRecords(Carbon $cutoffDate, int $batchSize, bool $dryRun): void
     {
         $this->line('<comment>Cleaning old database records...</comment>');
-        
+
         $tables = [
             'blocked_submissions',
             'ip_reputation',
             'spam_patterns',
         ];
-        
+
         $progressBar = $this->createProgressBar(count($tables));
         $progressBar->start();
-        
+
         foreach ($tables as $table) {
             $progressBar->setMessage("Processing table: {$table}");
 
             try {
-                if (!$dryRun) {
+                if (! $dryRun) {
                     $deleted = DB::table($table)
                         ->where('created_at', '<', $cutoffDate)
                         ->delete();
@@ -251,12 +252,12 @@ class CleanupCommand extends FormSecurityCommand
                 }
             } catch (\Exception $e) {
                 // Table doesn't exist or database error - skip gracefully
-                $this->line("Skipping table {$table}: " . $e->getMessage());
+                $this->line("Skipping table {$table}: ".$e->getMessage());
             }
 
             $progressBar->advance();
         }
-        
+
         $progressBar->finish();
         $this->newLine();
     }
@@ -267,27 +268,27 @@ class CleanupCommand extends FormSecurityCommand
     protected function cleanupTemporaryFiles(Carbon $cutoffDate, bool $dryRun): void
     {
         $this->line('<comment>Cleaning temporary files...</comment>');
-        
+
         $tempPaths = [
             storage_path('app/form-security/temp'),
             storage_path('app/form-security/uploads'),
             storage_path('app/form-security/exports'),
         ];
-        
+
         foreach ($tempPaths as $path) {
-            if (!File::exists($path)) {
+            if (! File::exists($path)) {
                 continue;
             }
-            
+
             $files = File::allFiles($path);
             $deletedCount = 0;
             $deletedSize = 0;
-            
+
             foreach ($files as $file) {
                 if ($file->getMTime() < $cutoffDate->timestamp) {
                     $size = $file->getSize();
-                    
-                    if (!$dryRun) {
+
+                    if (! $dryRun) {
                         File::delete($file->getPathname());
                         $deletedCount++;
                         $deletedSize += $size;
@@ -296,12 +297,12 @@ class CleanupCommand extends FormSecurityCommand
                     }
                 }
             }
-            
-            if (!$dryRun) {
+
+            if (! $dryRun) {
                 $this->cleanupStats['files_deleted'] += $deletedCount;
                 $this->cleanupStats['space_freed'] += $deletedSize;
             }
-            
+
             $this->line("Processed {$path}: {$deletedCount} files");
         }
     }
@@ -312,18 +313,18 @@ class CleanupCommand extends FormSecurityCommand
     protected function cleanupLogs(Carbon $cutoffDate, bool $dryRun): void
     {
         $this->line('<comment>Cleaning log files...</comment>');
-        
+
         $logPath = storage_path('logs');
-        $logFiles = File::glob($logPath . '/form-security-*.log');
-        
+        $logFiles = File::glob($logPath.'/form-security-*.log');
+
         $deletedCount = 0;
         $deletedSize = 0;
-        
+
         foreach ($logFiles as $file) {
             if (filemtime($file) < $cutoffDate->timestamp) {
                 $size = filesize($file);
-                
-                if (!$dryRun) {
+
+                if (! $dryRun) {
                     File::delete($file);
                     $deletedCount++;
                     $deletedSize += $size;
@@ -332,12 +333,12 @@ class CleanupCommand extends FormSecurityCommand
                 }
             }
         }
-        
-        if (!$dryRun) {
+
+        if (! $dryRun) {
             $this->cleanupStats['logs_cleaned'] += $deletedCount;
             $this->cleanupStats['space_freed'] += $deletedSize;
         }
-        
+
         $this->line("Processed log files: {$deletedCount} files");
     }
 
@@ -347,8 +348,8 @@ class CleanupCommand extends FormSecurityCommand
     protected function cleanupCache(bool $dryRun): void
     {
         $this->line('<comment>Cleaning cache entries...</comment>');
-        
-        if (!$dryRun) {
+
+        if (! $dryRun) {
             $result = $this->cacheManager->maintenance(['cleanup']);
             $clearedEntries = $result['cleanup']['items_processed'] ?? 0;
             $this->cleanupStats['cache_cleared'] += $clearedEntries;
@@ -368,7 +369,7 @@ class CleanupCommand extends FormSecurityCommand
         $this->newLine();
         $this->line('<comment>Cleanup Summary</comment>');
         $this->line('─────────────────────────────────────────────────────────────');
-        
+
         if ($dryRun) {
             $this->line('<fg=yellow>DRY RUN COMPLETED - No actual cleanup was performed</fg=yellow>');
         } else {
@@ -381,11 +382,11 @@ class CleanupCommand extends FormSecurityCommand
             ];
 
             $this->displayTable($headers, $rows);
-            
+
             $totalSpaceFreed = $this->formatBytes($this->cleanupStats['space_freed']);
             $this->displaySuccess("Cleanup completed successfully! Total space freed: {$totalSpaceFreed}");
         }
-        
+
         $this->newLine();
         $this->line('<comment>Recommendations:</comment>');
         $this->line('• Run cleanup regularly to maintain optimal performance');

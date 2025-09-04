@@ -34,6 +34,7 @@ use PHPUnit\Framework\Attributes\Test;
 class CacheValidationServiceTest extends TestCase
 {
     private CacheValidationService $service;
+
     private LaravelCacheManager $cacheManager;
 
     protected function setUp(): void
@@ -110,7 +111,7 @@ class CacheValidationServiceTest extends TestCase
     {
         $customRpm = 5000;
         $customDuration = 30;
-        
+
         $result = $this->service->validateConcurrentOperations($customRpm, $customDuration);
 
         $this->assertIsArray($result);
@@ -138,7 +139,7 @@ class CacheValidationServiceTest extends TestCase
         $options = [
             'cleanup_expired' => true,
             'optimize_storage' => true,
-            'max_memory_usage' => 80
+            'max_memory_usage' => 80,
         ];
 
         $result = $this->service->manageCapacity($options);
@@ -154,10 +155,10 @@ class CacheValidationServiceTest extends TestCase
     {
         // This test ensures the service doesn't throw exceptions during validation
         $result = $this->service->validatePerformance();
-        
+
         $this->assertIsArray($result);
         $this->assertArrayHasKey('overall_status', $result);
-        
+
         // Status should be a valid string
         $this->assertIsString($result['overall_status']);
         $this->assertContains($result['overall_status'], ['pass', 'fail', 'error']);
@@ -168,10 +169,10 @@ class CacheValidationServiceTest extends TestCase
     {
         // This test ensures the service doesn't throw exceptions during capacity validation
         $result = $this->service->validateCacheCapacity();
-        
+
         $this->assertIsArray($result);
         $this->assertArrayHasKey('overall_status', $result);
-        
+
         // Status should be a valid string
         $this->assertIsString($result['overall_status']);
         $this->assertContains($result['overall_status'], ['pass', 'fail', 'error']);

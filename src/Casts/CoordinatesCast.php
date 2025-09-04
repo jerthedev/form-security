@@ -29,6 +29,8 @@ use Illuminate\Database\Eloquent\Model;
  *
  * Custom cast for handling geographic coordinates with validation and precision.
  * Ensures coordinates are within valid ranges and maintains proper precision.
+ *
+ * @implements CastsAttributes<array<string, mixed>|null, array<string, mixed>|null>
  */
 class CoordinatesCast implements CastsAttributes
 {
@@ -36,6 +38,7 @@ class CoordinatesCast implements CastsAttributes
      * Cast the given value to coordinates array
      *
      * @param  array<string, mixed>  $attributes
+     * @return array<string, mixed>|null
      */
     public function get(Model $model, string $key, mixed $value, array $attributes): ?array
     {
@@ -76,7 +79,13 @@ class CoordinatesCast implements CastsAttributes
 
         $coordinates = $this->validateAndFormatCoordinates($value);
 
-        return $coordinates ? json_encode($coordinates) : null;
+        if ($coordinates === null) {
+            return null;
+        }
+
+        $encoded = json_encode($coordinates);
+
+        return $encoded !== false ? $encoded : null;
     }
 
     /**

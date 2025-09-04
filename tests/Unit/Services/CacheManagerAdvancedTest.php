@@ -320,7 +320,7 @@ class CacheManagerAdvancedTest extends TestCase
         $testData = [
             'request_key' => 'request_value',
             'memory_key' => 'memory_value',
-            'database_key' => 'database_value'
+            'database_key' => 'database_value',
         ];
 
         // Test operations across all levels work concurrently

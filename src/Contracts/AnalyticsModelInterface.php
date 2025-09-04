@@ -21,8 +21,8 @@ declare(strict_types=1);
 
 namespace JTD\FormSecurity\Contracts;
 
-use Illuminate\Database\Eloquent\Builder;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 
 /**
  * AnalyticsModelInterface Contract

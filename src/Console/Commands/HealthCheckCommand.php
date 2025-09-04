@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace JTD\FormSecurity\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
-use JTD\FormSecurity\Services\ConfigurationManager;
 use JTD\FormSecurity\Services\CacheManager;
-use Carbon\Carbon;
+use JTD\FormSecurity\Services\ConfigurationManager;
 
 /**
  * FormSecurity health check command.
@@ -63,7 +62,7 @@ class HealthCheckCommand extends FormSecurityCommand
         $this->displayHealthResults($detailed);
 
         // Export results if requested
-        if (!empty($export)) {
+        if (! empty($export)) {
             $this->exportResults($export);
         }
 
@@ -95,19 +94,19 @@ class HealthCheckCommand extends FormSecurityCommand
 
         foreach ($checks as $checkName => $method) {
             $progressBar->setMessage("Checking: {$checkName}");
-            
+
             try {
                 $result = $this->$method($detailed, $fix);
                 $this->healthResults['checks'][$checkName] = $result;
             } catch (\Exception $e) {
                 $this->healthResults['checks'][$checkName] = [
                     'status' => 'error',
-                    'message' => 'Check failed: ' . $e->getMessage(),
+                    'message' => 'Check failed: '.$e->getMessage(),
                     'details' => $detailed ? $e->getTraceAsString() : null,
                 ];
-                $this->healthResults['errors'][] = "Failed to check {$checkName}: " . $e->getMessage();
+                $this->healthResults['errors'][] = "Failed to check {$checkName}: ".$e->getMessage();
             }
-            
+
             $progressBar->advance();
         }
 
@@ -121,7 +120,7 @@ class HealthCheckCommand extends FormSecurityCommand
     protected function checkSystemRequirements(bool $detailed, bool $fix): array
     {
         $result = ['status' => 'healthy', 'details' => []];
-        
+
         // PHP version
         $phpVersion = PHP_VERSION;
         if (version_compare($phpVersion, '8.2.0', '<')) {
@@ -145,7 +144,7 @@ class HealthCheckCommand extends FormSecurityCommand
         // Required extensions
         $requiredExtensions = ['pdo', 'mbstring', 'openssl', 'json', 'curl'];
         foreach ($requiredExtensions as $extension) {
-            if (!extension_loaded($extension)) {
+            if (! extension_loaded($extension)) {
                 $result['status'] = 'error';
                 $result['details'][] = "Missing PHP extension: {$extension}";
                 $this->healthResults['errors'][] = "Missing required extension: {$extension}";
@@ -174,21 +173,21 @@ class HealthCheckCommand extends FormSecurityCommand
     protected function checkDatabaseConnectivity(bool $detailed, bool $fix): array
     {
         $result = ['status' => 'healthy', 'details' => []];
-        
+
         try {
             // Test connection
             $pdo = DB::connection()->getPdo();
-            $result['details'][] = "Database connection: established ✓";
-            
+            $result['details'][] = 'Database connection: established ✓';
+
             // Check driver
             $driver = DB::connection()->getDriverName();
             $result['details'][] = "Database driver: {$driver} ✓";
-            
+
             // Test query performance
             $start = microtime(true);
             DB::select('SELECT 1');
             $queryTime = round((microtime(true) - $start) * 1000, 2);
-            
+
             if ($queryTime > 100) {
                 $result['status'] = 'warning';
                 $result['details'][] = "Slow query response: {$queryTime}ms (target: <100ms)";
@@ -196,35 +195,35 @@ class HealthCheckCommand extends FormSecurityCommand
             } else {
                 $result['details'][] = "Query performance: {$queryTime}ms ✓";
             }
-            
+
             // Check required tables
             $requiredTables = [
                 'blocked_submissions',
                 'ip_reputation',
                 'spam_patterns',
             ];
-            
+
             foreach ($requiredTables as $table) {
-                if (!$this->tableExists($table)) {
+                if (! $this->tableExists($table)) {
                     $result['status'] = 'error';
                     $result['details'][] = "Missing table: {$table}";
                     $this->healthResults['errors'][] = "Required table missing: {$table}";
-                    
+
                     if ($fix) {
-                        $result['details'][] = "Attempting to create missing tables...";
+                        $result['details'][] = 'Attempting to create missing tables...';
                         // Would run migrations here
                     }
                 } else {
                     $result['details'][] = "Table {$table}: exists ✓";
                 }
             }
-            
+
         } catch (\Exception $e) {
             $result['status'] = 'error';
-            $result['details'][] = "Database connection failed: " . $e->getMessage();
-            $this->healthResults['errors'][] = "Database connection failed";
+            $result['details'][] = 'Database connection failed: '.$e->getMessage();
+            $this->healthResults['errors'][] = 'Database connection failed';
         }
-        
+
         return $result;
     }
 
@@ -234,32 +233,32 @@ class HealthCheckCommand extends FormSecurityCommand
     protected function checkCacheSystem(bool $detailed, bool $fix): array
     {
         $result = ['status' => 'healthy', 'details' => []];
-        
+
         try {
             // Test cache connectivity
-            $testKey = 'health_check_' . time();
-            $testValue = 'test_value_' . rand(1000, 9999);
-            
+            $testKey = 'health_check_'.time();
+            $testValue = 'test_value_'.rand(1000, 9999);
+
             Cache::put($testKey, $testValue, 60);
             $retrieved = Cache::get($testKey);
             Cache::forget($testKey);
-            
+
             if ($retrieved === $testValue) {
-                $result['details'][] = "Cache connectivity: working ✓";
+                $result['details'][] = 'Cache connectivity: working ✓';
             } else {
                 $result['status'] = 'error';
-                $result['details'][] = "Cache connectivity: failed";
-                $this->healthResults['errors'][] = "Cache system not working properly";
+                $result['details'][] = 'Cache connectivity: failed';
+                $this->healthResults['errors'][] = 'Cache system not working properly';
             }
-            
+
             // Check cache driver
             $driver = config('cache.default');
             $result['details'][] = "Cache driver: {$driver} ✓";
-            
+
             // Get cache statistics
             $stats = $this->cacheManager->getStatistics();
             $hitRatio = $stats['hit_ratio'] ?? 0;
-            
+
             if ($hitRatio < 80) {
                 $result['status'] = 'warning';
                 $result['details'][] = "Low cache hit ratio: {$hitRatio}% (target: 90%+)";
@@ -267,17 +266,17 @@ class HealthCheckCommand extends FormSecurityCommand
             } else {
                 $result['details'][] = "Cache hit ratio: {$hitRatio}% ✓";
             }
-            
+
             // Check cache size
             $cacheSize = $stats['cache_size'] ?? 0;
-            $result['details'][] = "Cache size: " . $this->formatBytes($cacheSize);
-            
+            $result['details'][] = 'Cache size: '.$this->formatBytes($cacheSize);
+
         } catch (\Exception $e) {
             $result['status'] = 'error';
-            $result['details'][] = "Cache check failed: " . $e->getMessage();
-            $this->healthResults['errors'][] = "Cache system error: " . $e->getMessage();
+            $result['details'][] = 'Cache check failed: '.$e->getMessage();
+            $this->healthResults['errors'][] = 'Cache system error: '.$e->getMessage();
         }
-        
+
         return $result;
     }
 
@@ -287,7 +286,7 @@ class HealthCheckCommand extends FormSecurityCommand
     protected function checkConfiguration(bool $detailed, bool $fix): array
     {
         $result = ['status' => 'healthy', 'details' => []];
-        
+
         try {
             // Check configuration files exist
             $configFiles = [
@@ -295,9 +294,9 @@ class HealthCheckCommand extends FormSecurityCommand
                 'form-security-cache.php',
                 'form-security-patterns.php',
             ];
-            
+
             foreach ($configFiles as $configFile) {
-                if (!File::exists(config_path($configFile))) {
+                if (! File::exists(config_path($configFile))) {
                     $result['status'] = 'error';
                     $result['details'][] = "Missing config file: {$configFile}";
                     $this->healthResults['errors'][] = "Configuration file missing: {$configFile}";
@@ -305,26 +304,26 @@ class HealthCheckCommand extends FormSecurityCommand
                     $result['details'][] = "Config file {$configFile}: exists ✓";
                 }
             }
-            
+
             // Validate configuration values
             $validationResult = $this->configManager->validateConfig([]);
-            
-            if (!$validationResult['valid']) {
+
+            if (! $validationResult['valid']) {
                 $result['status'] = 'warning';
                 foreach ($validationResult['errors'] as $error) {
                     $result['details'][] = "Config validation: {$error}";
                     $this->healthResults['warnings'][] = "Configuration issue: {$error}";
                 }
             } else {
-                $result['details'][] = "Configuration validation: passed ✓";
+                $result['details'][] = 'Configuration validation: passed ✓';
             }
-            
+
         } catch (\Exception $e) {
             $result['status'] = 'error';
-            $result['details'][] = "Configuration check failed: " . $e->getMessage();
-            $this->healthResults['errors'][] = "Configuration error: " . $e->getMessage();
+            $result['details'][] = 'Configuration check failed: '.$e->getMessage();
+            $this->healthResults['errors'][] = 'Configuration error: '.$e->getMessage();
         }
-        
+
         return $result;
     }
 
@@ -334,15 +333,15 @@ class HealthCheckCommand extends FormSecurityCommand
     protected function checkFilePermissions(bool $detailed, bool $fix): array
     {
         $result = ['status' => 'healthy', 'details' => []];
-        
+
         $paths = [
             storage_path('app/form-security') => 'rwx',
             storage_path('logs') => 'rwx',
             config_path() => 'r',
         ];
-        
+
         foreach ($paths as $path => $requiredPerms) {
-            if (!File::exists($path)) {
+            if (! File::exists($path)) {
                 if ($fix && $requiredPerms === 'rwx') {
                     File::makeDirectory($path, 0755, true);
                     $result['details'][] = "Created directory: {$path} ✓";
@@ -356,7 +355,7 @@ class HealthCheckCommand extends FormSecurityCommand
                 $result['details'][] = "Path {$path}: permissions {$perms} ✓";
             }
         }
-        
+
         return $result;
     }
 
@@ -366,24 +365,24 @@ class HealthCheckCommand extends FormSecurityCommand
     protected function checkPerformance(bool $detailed, bool $fix): array
     {
         $result = ['status' => 'healthy', 'details' => []];
-        
+
         // Memory usage
         $memoryUsage = memory_get_usage(true);
         $memoryPeak = memory_get_peak_usage(true);
-        
-        $result['details'][] = "Current memory: " . $this->formatBytes($memoryUsage);
-        $result['details'][] = "Peak memory: " . $this->formatBytes($memoryPeak);
-        
+
+        $result['details'][] = 'Current memory: '.$this->formatBytes($memoryUsage);
+        $result['details'][] = 'Peak memory: '.$this->formatBytes($memoryPeak);
+
         if ($memoryPeak > 50 * 1024 * 1024) { // 50MB
             $result['status'] = 'warning';
-            $result['details'][] = "High memory usage detected";
-            $this->healthResults['warnings'][] = "Memory usage is high: " . $this->formatBytes($memoryPeak);
+            $result['details'][] = 'High memory usage detected';
+            $this->healthResults['warnings'][] = 'Memory usage is high: '.$this->formatBytes($memoryPeak);
         }
-        
+
         // Execution time
         $executionTime = microtime(true) - $this->startTime;
-        $result['details'][] = "Health check time: " . round($executionTime, 2) . "s";
-        
+        $result['details'][] = 'Health check time: '.round($executionTime, 2).'s';
+
         return $result;
     }
 
@@ -393,25 +392,25 @@ class HealthCheckCommand extends FormSecurityCommand
     protected function checkSecurity(bool $detailed, bool $fix): array
     {
         $result = ['status' => 'healthy', 'details' => []];
-        
+
         // Check debug mode
         if (config('app.debug') && app()->environment('production')) {
             $result['status'] = 'error';
-            $result['details'][] = "Debug mode enabled in production";
-            $this->healthResults['errors'][] = "Debug mode should be disabled in production";
+            $result['details'][] = 'Debug mode enabled in production';
+            $this->healthResults['errors'][] = 'Debug mode should be disabled in production';
         } else {
-            $result['details'][] = "Debug mode: appropriate for environment ✓";
+            $result['details'][] = 'Debug mode: appropriate for environment ✓';
         }
-        
+
         // Check app key
         if (empty(config('app.key'))) {
             $result['status'] = 'error';
-            $result['details'][] = "Application key not set";
-            $this->healthResults['errors'][] = "Application key is missing";
+            $result['details'][] = 'Application key not set';
+            $this->healthResults['errors'][] = 'Application key is missing';
         } else {
-            $result['details'][] = "Application key: configured ✓";
+            $result['details'][] = 'Application key: configured ✓';
         }
-        
+
         return $result;
     }
 
@@ -421,15 +420,15 @@ class HealthCheckCommand extends FormSecurityCommand
     protected function checkDependencies(bool $detailed, bool $fix): array
     {
         $result = ['status' => 'healthy', 'details' => []];
-        
+
         // Check if services are bound
         $services = [
             ConfigurationManager::class,
             CacheManager::class,
         ];
-        
+
         foreach ($services as $service) {
-            if (!app()->bound($service)) {
+            if (! app()->bound($service)) {
                 $result['status'] = 'error';
                 $result['details'][] = "Service not bound: {$service}";
                 $this->healthResults['errors'][] = "Missing service binding: {$service}";
@@ -437,7 +436,7 @@ class HealthCheckCommand extends FormSecurityCommand
                 $result['details'][] = "Service {$service}: bound ✓";
             }
         }
-        
+
         return $result;
     }
 
@@ -449,7 +448,7 @@ class HealthCheckCommand extends FormSecurityCommand
         $this->newLine();
         $this->line('<comment>Health Check Results</comment>');
         $this->line('─────────────────────────────────────────────────────────────');
-        
+
         foreach ($this->healthResults['checks'] as $checkName => $result) {
             $status = $result['status'];
             $statusColor = match ($status) {
@@ -458,23 +457,23 @@ class HealthCheckCommand extends FormSecurityCommand
                 'error' => 'red',
                 default => 'white',
             };
-            
+
             $statusIcon = match ($status) {
                 'healthy' => '✓',
                 'warning' => '⚠',
                 'error' => '✗',
                 default => '?',
             };
-            
-            $this->line("<fg={$statusColor}>{$statusIcon} {$checkName}: " . strtoupper($status) . "</>");
-            
-            if ($detailed && !empty($result['details'])) {
+
+            $this->line("<fg={$statusColor}>{$statusIcon} {$checkName}: ".strtoupper($status).'</>');
+
+            if ($detailed && ! empty($result['details'])) {
                 foreach ($result['details'] as $detail) {
                     $this->line("  • {$detail}");
                 }
             }
         }
-        
+
         // Summary
         $this->newLine();
         $overallStatus = $this->determineOverallStatus();
@@ -484,19 +483,19 @@ class HealthCheckCommand extends FormSecurityCommand
             'error' => 'red',
             default => 'white',
         };
-        
-        $this->line("<fg={$statusColor}>Overall Status: " . strtoupper($overallStatus) . "</>");
-        
+
+        $this->line("<fg={$statusColor}>Overall Status: ".strtoupper($overallStatus).'</>');
+
         // Show warnings and errors
-        if (!empty($this->healthResults['warnings'])) {
+        if (! empty($this->healthResults['warnings'])) {
             $this->newLine();
             $this->line('<fg=yellow>Warnings:</fg=yellow>');
             foreach ($this->healthResults['warnings'] as $warning) {
                 $this->line("  ⚠ {$warning}");
             }
         }
-        
-        if (!empty($this->healthResults['errors'])) {
+
+        if (! empty($this->healthResults['errors'])) {
             $this->newLine();
             $this->line('<fg=red>Errors:</fg=red>');
             foreach ($this->healthResults['errors'] as $error) {
@@ -510,14 +509,14 @@ class HealthCheckCommand extends FormSecurityCommand
      */
     protected function determineOverallStatus(): string
     {
-        if (!empty($this->healthResults['errors'])) {
+        if (! empty($this->healthResults['errors'])) {
             return 'error';
         }
-        
-        if (!empty($this->healthResults['warnings'])) {
+
+        if (! empty($this->healthResults['warnings'])) {
             return 'warning';
         }
-        
+
         return 'healthy';
     }
 
@@ -527,16 +526,16 @@ class HealthCheckCommand extends FormSecurityCommand
     protected function exportResults(array $formats): void
     {
         foreach ($formats as $format) {
-            $filename = 'form-security-health-check-' . date('Y-m-d-H-i-s') . '.' . $format;
-            $path = storage_path('app/' . $filename);
-            
+            $filename = 'form-security-health-check-'.date('Y-m-d-H-i-s').'.'.$format;
+            $path = storage_path('app/'.$filename);
+
             match ($format) {
                 'json' => File::put($path, json_encode($this->healthResults, JSON_PRETTY_PRINT)),
                 'txt' => $this->exportToText($path),
                 'html' => $this->exportToHtml($path),
-                default => $this->displayWarning("Unknown export format: {$format}"),
+                default => $this->displayWarning("Invalid export format: {$format}"),
             };
-            
+
             if (File::exists($path)) {
                 $this->line("Results exported to: {$path}");
             }
@@ -549,19 +548,19 @@ class HealthCheckCommand extends FormSecurityCommand
     protected function exportToText(string $path): void
     {
         $content = "FormSecurity Health Check Report\n";
-        $content .= "Generated: " . date('Y-m-d H:i:s') . "\n";
-        $content .= str_repeat('=', 50) . "\n\n";
-        
+        $content .= 'Generated: '.date('Y-m-d H:i:s')."\n";
+        $content .= str_repeat('=', 50)."\n\n";
+
         foreach ($this->healthResults['checks'] as $checkName => $result) {
-            $content .= "{$checkName}: " . strtoupper($result['status']) . "\n";
-            if (!empty($result['details'])) {
+            $content .= "{$checkName}: ".strtoupper($result['status'])."\n";
+            if (! empty($result['details'])) {
                 foreach ($result['details'] as $detail) {
                     $content .= "  • {$detail}\n";
                 }
             }
             $content .= "\n";
         }
-        
+
         File::put($path, $content);
     }
 
@@ -571,7 +570,7 @@ class HealthCheckCommand extends FormSecurityCommand
     protected function exportToHtml(string $path): void
     {
         // HTML export implementation would go here
-        $content = "<html><body><h1>FormSecurity Health Check Report</h1></body></html>";
+        $content = '<html><body><h1>FormSecurity Health Check Report</h1></body></html>';
         File::put($path, $content);
     }
 
@@ -595,7 +594,7 @@ class HealthCheckCommand extends FormSecurityCommand
         $limit = trim($limit);
         $last = strtolower($limit[strlen($limit) - 1]);
         $value = (int) $limit;
-        
+
         return match ($last) {
             'g' => $value * 1024 * 1024 * 1024,
             'm' => $value * 1024 * 1024,

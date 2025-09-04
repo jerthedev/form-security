@@ -353,7 +353,7 @@ class CacheKeyManager
      */
     public function normalize(string|CacheKey $key, string $strategy = 'snake_case'): string|CacheKey
     {
-        if (!isset($this->namingStrategies[$strategy])) {
+        if (! isset($this->namingStrategies[$strategy])) {
             throw new \InvalidArgumentException("Unknown naming strategy: {$strategy}");
         }
 
@@ -432,7 +432,7 @@ class CacheKeyManager
             $maxTtl = 604800; // 7 days
 
             if ($key->ttl < 0) {
-                return "TTL cannot be negative";
+                return 'TTL cannot be negative';
             }
 
             return $key->ttl <= $maxTtl ?: "TTL too high (max {$maxTtl} seconds)";

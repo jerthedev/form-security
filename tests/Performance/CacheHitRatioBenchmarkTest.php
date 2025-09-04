@@ -22,7 +22,6 @@ namespace JTD\FormSecurity\Tests\Performance;
 
 use JTD\FormSecurity\Services\CacheManager;
 use JTD\FormSecurity\Tests\TestCase;
-use JTD\FormSecurity\ValueObjects\CacheKey;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 
@@ -35,6 +34,7 @@ use PHPUnit\Framework\Attributes\Test;
 class CacheHitRatioBenchmarkTest extends TestCase
 {
     private CacheManager $cacheManager;
+
     private array $performanceResults = [];
 
     protected function setUp(): void
@@ -57,9 +57,9 @@ class CacheHitRatioBenchmarkTest extends TestCase
         foreach ($testScenarios as $scenario => $config) {
             $results = $this->runHitRatioBenchmark($scenario, $config['keys'], $config['operations']);
             $this->performanceResults[$scenario] = $results;
-            
+
             // Validate 90%+ hit ratio requirement
-            $this->assertGreaterThanOrEqual(90.0, $results['hit_ratio'], 
+            $this->assertGreaterThanOrEqual(90.0, $results['hit_ratio'],
                 "Cache hit ratio for {$scenario} should be >= 90%, got {$results['hit_ratio']}%");
         }
 
@@ -76,7 +76,7 @@ class CacheHitRatioBenchmarkTest extends TestCase
         foreach ($levels as $level) {
             $results = $this->runLevelSpecificBenchmark($level, $keyCount, $operationCount);
             $this->performanceResults["level_{$level}"] = $results;
-            
+
             // Each level should maintain reasonable hit ratios (isolated level testing has different characteristics)
             $this->assertGreaterThanOrEqual(50.0, $results['hit_ratio'],
                 "Hit ratio for {$level} level should be >= 50%, got {$results['hit_ratio']}%");
@@ -91,21 +91,21 @@ class CacheHitRatioBenchmarkTest extends TestCase
 
         // Test without warming
         $coldResults = $this->runHitRatioBenchmark('cold_cache', $keyCount, $operationCount);
-        
+
         // Test with warming
         $this->warmCache($keyCount);
         $warmResults = $this->runHitRatioBenchmark('warm_cache', $keyCount, $operationCount);
-        
+
         $this->performanceResults['cache_warming'] = [
             'cold_hit_ratio' => $coldResults['hit_ratio'],
             'warm_hit_ratio' => $warmResults['hit_ratio'],
-            'improvement' => $warmResults['hit_ratio'] - $coldResults['hit_ratio']
+            'improvement' => $warmResults['hit_ratio'] - $coldResults['hit_ratio'],
         ];
 
         // Warm cache should significantly outperform cold cache
         $this->assertGreaterThan($coldResults['hit_ratio'], $warmResults['hit_ratio'],
             'Warm cache should have higher hit ratio than cold cache');
-        
+
         $this->assertGreaterThanOrEqual(90.0, $warmResults['hit_ratio'],
             'Warm cache should achieve 90%+ hit ratio');
     }
@@ -115,7 +115,7 @@ class CacheHitRatioBenchmarkTest extends TestCase
     {
         $results = $this->runConcurrentAccessBenchmark();
         $this->performanceResults['concurrent_access'] = $results;
-        
+
         // Concurrent access should maintain reasonable hit ratios (lower expectation due to mixed operations)
         $this->assertGreaterThanOrEqual(50.0, $results['hit_ratio'],
             'Concurrent access should maintain >= 50% hit ratio');
@@ -125,22 +125,22 @@ class CacheHitRatioBenchmarkTest extends TestCase
     {
         $startTime = microtime(true);
         $keys = $this->generateTestKeys($keyCount);
-        
+
         // Pre-populate cache with some data (simulating real-world usage)
         $this->populateCache($keys, 0.7); // 70% of keys pre-populated
-        
+
         $hits = 0;
         $misses = 0;
         $operations = 0;
-        
+
         // Reset stats
         $this->cacheManager->resetStats();
-        
+
         // Perform mixed read operations
         for ($i = 0; $i < $operationCount; $i++) {
             $key = $keys[array_rand($keys)];
             $value = $this->cacheManager->get($key);
-            
+
             if ($value !== null) {
                 $hits++;
             } else {
@@ -150,10 +150,10 @@ class CacheHitRatioBenchmarkTest extends TestCase
             }
             $operations++;
         }
-        
+
         $duration = microtime(true) - $startTime;
         $hitRatio = $operations > 0 ? ($hits / $operations) * 100 : 0;
-        
+
         return [
             'scenario' => $scenario,
             'key_count' => $keyCount,
@@ -163,47 +163,47 @@ class CacheHitRatioBenchmarkTest extends TestCase
             'hit_ratio' => round($hitRatio, 2),
             'duration_seconds' => round($duration, 3),
             'operations_per_second' => round($operations / $duration, 2),
-            'cache_stats' => $this->cacheManager->getStats()
+            'cache_stats' => $this->cacheManager->getStats(),
         ];
     }
 
     private function runLevelSpecificBenchmark(string $level, int $keyCount, int $operationCount): array
     {
         $keys = $this->generateTestKeys($keyCount);
-        $levelMethod = "putIn" . ucfirst($level);
-        $getLevelMethod = "getFrom" . ucfirst($level);
-        
+        $levelMethod = 'putIn'.ucfirst($level);
+        $getLevelMethod = 'getFrom'.ucfirst($level);
+
         // Pre-populate specific level
         foreach ($keys as $key) {
             if (rand(1, 100) <= 70) { // 70% population rate
                 $this->cacheManager->$levelMethod($key, "value_for_{$key}");
             }
         }
-        
+
         $hits = 0;
         $operations = 0;
         $startTime = microtime(true);
-        
+
         for ($i = 0; $i < $operationCount; $i++) {
             $key = $keys[array_rand($keys)];
             $value = $this->cacheManager->$getLevelMethod($key);
-            
+
             if ($value !== null) {
                 $hits++;
             }
             $operations++;
         }
-        
+
         $duration = microtime(true) - $startTime;
         $hitRatio = $operations > 0 ? ($hits / $operations) * 100 : 0;
-        
+
         return [
             'level' => $level,
             'operations' => $operations,
             'hits' => $hits,
             'hit_ratio' => round($hitRatio, 2),
             'duration_seconds' => round($duration, 3),
-            'operations_per_second' => round($operations / $duration, 2)
+            'operations_per_second' => round($operations / $duration, 2),
         ];
     }
 
@@ -212,43 +212,47 @@ class CacheHitRatioBenchmarkTest extends TestCase
         $keyCount = 150;
         $operationCount = 1500;
         $keys = $this->generateTestKeys($keyCount);
-        
+
         // Simulate concurrent access by rapid operations
         $this->populateCache($keys, 0.6);
-        
+
         $hits = 0;
         $operations = 0;
         $startTime = microtime(true);
-        
+
         // Simulate concurrent access patterns
         for ($i = 0; $i < $operationCount; $i++) {
             $key = $keys[array_rand($keys)];
-            
+
             // Mix of operations simulating concurrent access
             if ($i % 3 === 0) {
                 // Read operation
                 $value = $this->cacheManager->get($key);
-                if ($value !== null) $hits++;
+                if ($value !== null) {
+                    $hits++;
+                }
             } elseif ($i % 3 === 1) {
                 // Write operation
                 $this->cacheManager->put($key, "concurrent_value_{$i}", 1800);
             } else {
                 // Read after potential write
                 $value = $this->cacheManager->get($key);
-                if ($value !== null) $hits++;
+                if ($value !== null) {
+                    $hits++;
+                }
             }
             $operations++;
         }
-        
+
         $duration = microtime(true) - $startTime;
         $hitRatio = $operations > 0 ? ($hits / $operations) * 100 : 0;
-        
+
         return [
             'operations' => $operations,
             'hits' => $hits,
             'hit_ratio' => round($hitRatio, 2),
             'duration_seconds' => round($duration, 3),
-            'operations_per_second' => round($operations / $duration, 2)
+            'operations_per_second' => round($operations / $duration, 2),
         ];
     }
 
@@ -257,9 +261,9 @@ class CacheHitRatioBenchmarkTest extends TestCase
         $warmers = [];
         for ($i = 0; $i < $keyCount; $i++) {
             $key = "warm_key_{$i}";
-            $warmers[$key] = fn() => "warmed_value_{$i}";
+            $warmers[$key] = fn () => "warmed_value_{$i}";
         }
-        
+
         $this->cacheManager->warm($warmers);
     }
 
@@ -269,6 +273,7 @@ class CacheHitRatioBenchmarkTest extends TestCase
         for ($i = 0; $i < $count; $i++) {
             $keys[] = "benchmark_key_{$i}";
         }
+
         return $keys;
     }
 
@@ -283,29 +288,29 @@ class CacheHitRatioBenchmarkTest extends TestCase
 
     private function outputPerformanceReport(): void
     {
-        echo "\n" . str_repeat("=", 80) . "\n";
+        echo "\n".str_repeat('=', 80)."\n";
         echo "CACHE HIT RATIO PERFORMANCE BENCHMARK REPORT\n";
-        echo str_repeat("=", 80) . "\n";
-        
+        echo str_repeat('=', 80)."\n";
+
         foreach ($this->performanceResults as $scenario => $results) {
-            echo "\nScenario: " . strtoupper(str_replace('_', ' ', $scenario)) . "\n";
-            echo str_repeat("-", 50) . "\n";
-            
+            echo "\nScenario: ".strtoupper(str_replace('_', ' ', $scenario))."\n";
+            echo str_repeat('-', 50)."\n";
+
             if (isset($results['hit_ratio'])) {
                 echo "Hit Ratio: {$results['hit_ratio']}%\n";
                 echo "Operations: {$results['operations']}\n";
                 echo "Duration: {$results['duration_seconds']}s\n";
                 echo "Ops/Second: {$results['operations_per_second']}\n";
             }
-            
+
             if (isset($results['improvement'])) {
                 echo "Cold Hit Ratio: {$results['cold_hit_ratio']}%\n";
                 echo "Warm Hit Ratio: {$results['warm_hit_ratio']}%\n";
                 echo "Improvement: +{$results['improvement']}%\n";
             }
         }
-        
-        echo "\n" . str_repeat("=", 80) . "\n";
+
+        echo "\n".str_repeat('=', 80)."\n";
     }
 
     protected function tearDown(): void

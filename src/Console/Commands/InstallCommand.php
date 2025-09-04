@@ -8,7 +8,6 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use JTD\FormSecurity\Services\ConfigurationManager;
-use JTD\FormSecurity\Services\CacheManager;
 
 /**
  * FormSecurity installation command.
@@ -52,32 +51,32 @@ class InstallCommand extends FormSecurityCommand
         $this->newLine();
 
         // Step 1: Environment validation
-        if (!$this->option('skip-validation') && !$this->validateEnvironment()) {
+        if (! $this->option('skip-validation') && ! $this->validateEnvironment()) {
             return Command::FAILURE;
         }
 
         // Step 2: Configuration publishing
-        if (!$this->option('skip-config') && !$this->publishConfiguration()) {
+        if (! $this->option('skip-config') && ! $this->publishConfiguration()) {
             return Command::FAILURE;
         }
 
         // Step 3: Database migration
-        if (!$this->option('skip-migration') && !$this->runMigrations()) {
+        if (! $this->option('skip-migration') && ! $this->runMigrations()) {
             return Command::FAILURE;
         }
 
         // Step 4: Cache setup
-        if (!$this->setupCache()) {
+        if (! $this->setupCache()) {
             return Command::FAILURE;
         }
 
         // Step 5: Final validation
-        if (!$this->validateInstallation()) {
+        if (! $this->validateInstallation()) {
             return Command::FAILURE;
         }
 
         $this->displayInstallationSummary();
-        
+
         return Command::SUCCESS;
     }
 
@@ -87,7 +86,7 @@ class InstallCommand extends FormSecurityCommand
     protected function validateEnvironment(): bool
     {
         $this->line('<comment>Step 1: Environment Validation</comment>');
-        
+
         $progressBar = $this->createProgressBar(5);
         $progressBar->start();
 
@@ -95,7 +94,8 @@ class InstallCommand extends FormSecurityCommand
         $progressBar->setMessage('Checking PHP version...');
         if (version_compare(PHP_VERSION, '8.2.0', '<')) {
             $progressBar->finish();
-            $this->displayError('PHP 8.2+ is required. Current version: ' . PHP_VERSION);
+            $this->displayError('PHP 8.2+ is required. Current version: '.PHP_VERSION);
+
             return false;
         }
         $progressBar->advance();
@@ -107,7 +107,8 @@ class InstallCommand extends FormSecurityCommand
                 $laravelVersion = app()->version();
                 if (version_compare($laravelVersion, '11.0', '<')) {
                     $progressBar->finish();
-                    $this->displayError('Laravel 11+ is required. Current version: ' . $laravelVersion);
+                    $this->displayError('Laravel 11+ is required. Current version: '.$laravelVersion);
+
                     return false;
                 }
             }
@@ -120,9 +121,10 @@ class InstallCommand extends FormSecurityCommand
         $progressBar->setMessage('Checking PHP extensions...');
         $requiredExtensions = ['pdo', 'mbstring', 'openssl', 'json'];
         foreach ($requiredExtensions as $extension) {
-            if (!extension_loaded($extension)) {
+            if (! extension_loaded($extension)) {
                 $progressBar->finish();
                 $this->displayError("Required PHP extension '{$extension}' is not loaded");
+
                 return false;
             }
         }
@@ -142,7 +144,7 @@ class InstallCommand extends FormSecurityCommand
         $this->newLine();
         $this->displaySuccess('Environment validation completed');
         $this->completedSteps[] = 'environment_validation';
-        
+
         return true;
     }
 
@@ -153,8 +155,9 @@ class InstallCommand extends FormSecurityCommand
     {
         $this->line('<comment>Step 2: Configuration Publishing</comment>');
 
-        if (!$this->confirmAction('Publish configuration files?', true)) {
+        if (! $this->confirmAction('Publish configuration files?', true)) {
             $this->info('Skipping configuration publishing');
+
             return true;
         }
 
@@ -165,7 +168,7 @@ class InstallCommand extends FormSecurityCommand
                 Artisan::call('vendor:publish', [
                     '--provider' => 'JTD\FormSecurity\FormSecurityServiceProvider',
                     '--tag' => 'form-security-config',
-                    '--force' => $this->option('force')
+                    '--force' => $this->option('force'),
                 ]);
             } catch (\Exception $e) {
                 $this->line('Skipping config publishing in package context');
@@ -177,7 +180,7 @@ class InstallCommand extends FormSecurityCommand
                 Artisan::call('vendor:publish', [
                     '--provider' => 'JTD\FormSecurity\FormSecurityServiceProvider',
                     '--tag' => 'form-security-cache-config',
-                    '--force' => $this->option('force')
+                    '--force' => $this->option('force'),
                 ]);
             } catch (\Exception $e) {
                 $this->line('Skipping cache config publishing in package context');
@@ -189,7 +192,7 @@ class InstallCommand extends FormSecurityCommand
                 Artisan::call('vendor:publish', [
                     '--provider' => 'JTD\FormSecurity\FormSecurityServiceProvider',
                     '--tag' => 'form-security-patterns-config',
-                    '--force' => $this->option('force')
+                    '--force' => $this->option('force'),
                 ]);
             } catch (\Exception $e) {
                 $this->line('Skipping pattern config publishing in package context');
@@ -202,6 +205,7 @@ class InstallCommand extends FormSecurityCommand
         } catch (\Exception $e) {
             // In package context, don't fail for publishing issues
             $this->line('Skipping configuration publishing in package context');
+
             return true;
         }
     }
@@ -213,8 +217,9 @@ class InstallCommand extends FormSecurityCommand
     {
         $this->line('<comment>Step 3: Database Migration</comment>');
 
-        if (!$this->confirmAction('Run database migrations?', true)) {
+        if (! $this->confirmAction('Run database migrations?', true)) {
             $this->info('Skipping database migrations');
+
             return true;
         }
 
@@ -224,7 +229,7 @@ class InstallCommand extends FormSecurityCommand
             try {
                 Artisan::call('migrate', [
                     '--path' => 'vendor/jerthedev/form-security/database/migrations',
-                    '--force' => true
+                    '--force' => true,
                 ]);
             } catch (\Exception $e) {
                 // In package context, migrations might already be handled by TestCase
@@ -238,6 +243,7 @@ class InstallCommand extends FormSecurityCommand
         } catch (\Exception $e) {
             // In package context, don't fail for migration issues
             $this->line('Skipping migrations in package context');
+
             return true;
         }
     }
@@ -273,6 +279,7 @@ class InstallCommand extends FormSecurityCommand
         } catch (\Exception $e) {
             // In package context, don't fail for cache issues
             $this->line('Skipping cache setup in package context');
+
             return true;
         }
     }
@@ -293,11 +300,11 @@ class InstallCommand extends FormSecurityCommand
             $configFiles = [
                 'form-security.php',
                 'form-security-cache.php',
-                'form-security-patterns.php'
+                'form-security-patterns.php',
             ];
 
             foreach ($configFiles as $configFile) {
-                if (function_exists('config_path') && !File::exists(config_path($configFile))) {
+                if (function_exists('config_path') && ! File::exists(config_path($configFile))) {
                     // In package context, config files might not be published
                     $this->line("Skipping config file check for {$configFile} in package context");
                 }
@@ -325,7 +332,7 @@ class InstallCommand extends FormSecurityCommand
         // Check service registration (lenient in package context)
         $progressBar->setMessage('Validating service registration...');
         try {
-            if (function_exists('app') && !app()->bound(ConfigurationManager::class)) {
+            if (function_exists('app') && ! app()->bound(ConfigurationManager::class)) {
                 $this->line('Service registration check skipped in package context');
             }
         } catch (\Exception $e) {
@@ -337,7 +344,7 @@ class InstallCommand extends FormSecurityCommand
         $this->newLine();
         $this->displaySuccess('Installation validation completed');
         $this->completedSteps[] = 'installation_validation';
-        
+
         return true;
     }
 
@@ -349,8 +356,9 @@ class InstallCommand extends FormSecurityCommand
         $this->line('<comment>Rolling back FormSecurity installation...</comment>');
         $this->newLine();
 
-        if (!$this->confirmAction('Are you sure you want to rollback the installation?', false)) {
+        if (! $this->confirmAction('Are you sure you want to rollback the installation?', false)) {
             $this->info('Rollback cancelled');
+
             return Command::SUCCESS;
         }
 
@@ -360,7 +368,7 @@ class InstallCommand extends FormSecurityCommand
             try {
                 Artisan::call('migrate:rollback', [
                     '--path' => 'vendor/jerthedev/form-security/database/migrations',
-                    '--force' => true
+                    '--force' => true,
                 ]);
             } catch (\Exception $e) {
                 $this->line('Skipping migration rollback in package context');
@@ -373,7 +381,7 @@ class InstallCommand extends FormSecurityCommand
                     $configFiles = [
                         config_path('form-security.php'),
                         config_path('form-security-cache.php'),
-                        config_path('form-security-patterns.php')
+                        config_path('form-security-patterns.php'),
                     ];
 
                     foreach ($configFiles as $configFile) {
@@ -400,6 +408,7 @@ class InstallCommand extends FormSecurityCommand
         } catch (\Exception $e) {
             // In package context, don't fail for rollback issues
             $this->line('Rollback completed in package context');
+
             return Command::SUCCESS;
         }
     }
@@ -412,13 +421,13 @@ class InstallCommand extends FormSecurityCommand
         $this->newLine();
         $this->line('<comment>Installation Summary</comment>');
         $this->line('─────────────────────────────────────────────────────────────');
-        
+
         $steps = [
             'environment_validation' => 'Environment Validation',
             'configuration_publishing' => 'Configuration Publishing',
             'database_migration' => 'Database Migration',
             'cache_setup' => 'Cache Setup',
-            'installation_validation' => 'Installation Validation'
+            'installation_validation' => 'Installation Validation',
         ];
 
         foreach ($steps as $step => $description) {
@@ -430,7 +439,7 @@ class InstallCommand extends FormSecurityCommand
         $this->newLine();
         $this->displaySuccess('FormSecurity package installed successfully!');
         $this->newLine();
-        
+
         $this->line('<comment>Next Steps:</comment>');
         $this->line('1. Review configuration files in config/ directory');
         $this->line('2. Run: php artisan form-security:health-check');

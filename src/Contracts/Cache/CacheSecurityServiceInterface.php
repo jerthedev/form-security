@@ -10,6 +10,8 @@ namespace JTD\FormSecurity\Contracts\Cache;
 interface CacheSecurityServiceInterface
 {
     public function enableSecurity(array $config = []): void;
+
     public function disableSecurity(): void;
+
     public function getSecurityStatus(): array;
 }

@@ -10,5 +10,6 @@ namespace JTD\FormSecurity\Contracts\Cache;
 interface CacheWarmingServiceInterface
 {
     public function warm(array $warmers, ?array $levels = null): array;
+
     public function processBatch(array $batch, array $levels, int $batchNumber): array;
 }

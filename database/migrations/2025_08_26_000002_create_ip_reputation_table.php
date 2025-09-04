@@ -13,20 +13,20 @@ return new class extends Migration
     {
         Schema::create('ip_reputation', function (Blueprint $table) {
             $table->id();
-            
+
             // IP address (primary key for lookups)
             $table->string('ip_address', 45)->unique(); // IPv6 support
-            
+
             // Reputation scoring
             $table->integer('reputation_score')->default(50)->index(); // 0-100 scale
             $table->enum('reputation_status', [
                 'trusted',
-                'neutral', 
+                'neutral',
                 'suspicious',
                 'malicious',
-                'blocked'
+                'blocked',
             ])->default('neutral')->index();
-            
+
             // Threat intelligence
             $table->boolean('is_tor')->default(false)->index();
             $table->boolean('is_proxy')->default(false)->index();
@@ -34,14 +34,14 @@ return new class extends Migration
             $table->boolean('is_hosting')->default(false)->index();
             $table->boolean('is_malware')->default(false)->index();
             $table->boolean('is_botnet')->default(false)->index();
-            
+
             // Geographic information
             $table->string('country_code', 2)->nullable()->index();
             $table->string('region', 100)->nullable();
             $table->string('city', 100)->nullable();
             $table->string('isp', 255)->nullable();
             $table->string('organization', 255)->nullable();
-            
+
             // Activity tracking
             $table->integer('submission_count')->default(0)->index();
             $table->integer('blocked_count')->default(0)->index();
@@ -49,28 +49,28 @@ return new class extends Migration
             $table->timestamp('first_seen')->nullable()->index();
             $table->timestamp('last_seen')->nullable()->index();
             $table->timestamp('last_blocked')->nullable()->index();
-            
+
             // Threat source tracking
             $table->json('threat_sources')->nullable(); // Array of threat intelligence sources
             $table->json('threat_categories')->nullable(); // Array of threat categories
             $table->text('notes')->nullable(); // Admin notes
-            
+
             // Cache management
             $table->timestamp('cache_expires_at')->nullable()->index();
             $table->boolean('is_whitelisted')->default(false)->index();
             $table->boolean('is_blacklisted')->default(false)->index();
-            
+
             // Metadata
             $table->json('metadata')->nullable(); // Additional flexible data
             $table->timestamps();
-            
+
             // Composite indexes for performance
             $table->index(['reputation_score', 'updated_at']);
             $table->index(['reputation_status', 'updated_at']);
             $table->index(['country_code', 'reputation_score']);
             $table->index(['block_rate', 'submission_count']);
             $table->index(['cache_expires_at', 'reputation_status']);
-            
+
             // Analytics indexes
             $table->index(['last_seen', 'reputation_score']);
             $table->index(['submission_count', 'blocked_count', 'updated_at']);

@@ -48,8 +48,11 @@ class LoadTestingTest extends TestCase
     use RefreshDatabase;
 
     private const DAILY_SUBMISSION_TARGET = 10000;
+
     private const MEMORY_LIMIT_MB = 50;
+
     private const MAX_RESPONSE_TIME_MS = 100;
+
     private const MIN_CACHE_HIT_RATIO = 0.90;
 
     #[Test]
@@ -69,11 +72,11 @@ class LoadTestingTest extends TestCase
 
         for ($batch = 0; $batch < $batches; $batch++) {
             $batchSubmissions = [];
-            
+
             for ($i = 0; $i < $batchSize && ($batch * $batchSize + $i) < $submissionCount; $i++) {
                 $batchSubmissions[] = [
-                    'form_identifier' => 'load-test-form-' . ($i % 5),
-                    'ip_address' => '192.168.' . ($batch % 255) . '.' . ($i % 255),
+                    'form_identifier' => 'load-test-form-'.($i % 5),
+                    'ip_address' => '192.168.'.($batch % 255).'.'.($i % 255),
                     'block_reason' => BlockReason::SPAM_PATTERN->value,
                     'risk_score' => rand(20, 90),
                     'blocked_at' => now()->subMinutes(rand(1, 1440)), // Random within last day
@@ -125,8 +128,8 @@ class LoadTestingTest extends TestCase
         $writeOperations = 50;
         for ($i = 0; $i < $writeOperations; $i++) {
             BlockedSubmission::create([
-                'form_identifier' => 'concurrent-test-' . $i,
-                'ip_address' => '10.0.' . ($i % 255) . '.' . rand(1, 254),
+                'form_identifier' => 'concurrent-test-'.$i,
+                'ip_address' => '10.0.'.($i % 255).'.'.rand(1, 254),
                 'block_reason' => BlockReason::SPAM_PATTERN->value,
                 'blocked_at' => now(),
             ]);
@@ -245,11 +248,11 @@ class LoadTestingTest extends TestCase
         // Simulate hourly batches throughout the day
         for ($hour = 0; $hour < $hoursInDay; $hour++) {
             $hourlySubmissions = [];
-            
+
             for ($i = 0; $i < $submissionsPerHour && $totalProcessed < $dailySubmissions; $i++) {
                 $hourlySubmissions[] = [
-                    'form_identifier' => 'daily-peak-form-' . ($i % 10),
-                    'ip_address' => '172.16.' . ($hour % 255) . '.' . ($i % 255),
+                    'form_identifier' => 'daily-peak-form-'.($i % 10),
+                    'ip_address' => '172.16.'.($hour % 255).'.'.($i % 255),
                     'block_reason' => BlockReason::SPAM_PATTERN->value,
                     'risk_score' => rand(30, 95),
                     'blocked_at' => now()->subHours(24 - $hour)->addMinutes(rand(0, 59)),
@@ -259,7 +262,7 @@ class LoadTestingTest extends TestCase
                 $totalProcessed++;
             }
 
-            if (!empty($hourlySubmissions)) {
+            if (! empty($hourlySubmissions)) {
                 BlockedSubmission::insert($hourlySubmissions);
             }
 
@@ -304,8 +307,8 @@ class LoadTestingTest extends TestCase
             $batch = [];
             for ($i = 0; $i < $submissionsPerIteration; $i++) {
                 $batch[] = [
-                    'form_identifier' => 'sustained-load-' . ($iteration % 5),
-                    'ip_address' => '192.168.' . ($iteration % 255) . '.' . ($i % 255),
+                    'form_identifier' => 'sustained-load-'.($iteration % 5),
+                    'ip_address' => '192.168.'.($iteration % 255).'.'.($i % 255),
                     'block_reason' => BlockReason::SPAM_PATTERN->value,
                     'risk_score' => rand(25, 85),
                     'blocked_at' => now()->subMinutes(rand(1, 60)),

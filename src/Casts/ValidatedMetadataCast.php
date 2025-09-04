@@ -29,6 +29,8 @@ use Illuminate\Database\Eloquent\Model;
  *
  * Custom cast for handling metadata with validation, sanitization, and size limits.
  * Ensures metadata is properly structured and doesn't exceed storage limits.
+ *
+ * @implements CastsAttributes<array<string, mixed>, array<string, mixed>|null>
  */
 class ValidatedMetadataCast implements CastsAttributes
 {
@@ -51,6 +53,7 @@ class ValidatedMetadataCast implements CastsAttributes
      * Cast the given value to validated metadata array
      *
      * @param  array<string, mixed>  $attributes
+     * @return array<string, mixed>
      */
     public function get(Model $model, string $key, mixed $value, array $attributes): array
     {
@@ -97,14 +100,17 @@ class ValidatedMetadataCast implements CastsAttributes
 
         $json = json_encode($validated, JSON_UNESCAPED_UNICODE);
 
+        if ($json === false) {
+            return null;
+        }
+
         // Check size limit
         if (strlen($json) > self::MAX_SIZE) {
             // Try to reduce size by removing less important data
             $reduced = $this->reduceMetadataSize($validated);
             $json = json_encode($reduced, JSON_UNESCAPED_UNICODE);
 
-            // If still too large, truncate
-            if (strlen($json) > self::MAX_SIZE) {
+            if ($json === false || strlen($json) > self::MAX_SIZE) {
                 return null;
             }
         }
@@ -161,7 +167,8 @@ class ValidatedMetadataCast implements CastsAttributes
         $key = (string) $key;
 
         // Remove or replace invalid characters
-        $key = preg_replace('/[^\w\-_.]/', '_', $key);
+        $sanitized = preg_replace('/[^\w\-_.]/', '_', $key);
+        $key = $sanitized !== null ? $sanitized : $key;
 
         // Limit length
         $key = substr($key, 0, 100);
@@ -210,9 +217,12 @@ class ValidatedMetadataCast implements CastsAttributes
         // For objects or other types, try to convert to array
         if (is_object($value)) {
             try {
-                $array = json_decode(json_encode($value), true);
-                if (is_array($array)) {
-                    return $this->validateAndSanitizeMetadata($array, $depth);
+                $encoded = json_encode($value);
+                if ($encoded !== false) {
+                    $array = json_decode($encoded, true);
+                    if (is_array($array)) {
+                        return $this->validateAndSanitizeMetadata($array, $depth);
+                    }
                 }
             } catch (\Exception $e) {
                 // Ignore conversion errors
@@ -246,6 +256,10 @@ class ValidatedMetadataCast implements CastsAttributes
 
         foreach ($metadata as $key => $value) {
             $itemJson = json_encode([$key => $value]);
+            if ($itemJson === false) {
+                continue;
+            }
+
             $itemSize = strlen($itemJson);
 
             if ($currentSize + $itemSize <= $maxSize) {

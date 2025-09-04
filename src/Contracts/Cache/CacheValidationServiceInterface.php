@@ -10,7 +10,10 @@ namespace JTD\FormSecurity\Contracts\Cache;
 interface CacheValidationServiceInterface
 {
     public function validatePerformance(): array;
+
     public function validateCacheCapacity(): array;
+
     public function validateConcurrentOperations(int $targetRpm = 10000, int $testDurationSeconds = 60): array;
+
     public function manageCapacity(array $options = []): array;
 }

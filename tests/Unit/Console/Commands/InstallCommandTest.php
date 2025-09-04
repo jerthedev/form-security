@@ -18,11 +18,8 @@ declare(strict_types=1);
 
 namespace JTD\FormSecurity\Tests\Unit\Console\Commands;
 
-use JTD\FormSecurity\Console\Commands\InstallCommand;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\File;
-use Mockery;
+use JTD\FormSecurity\Console\Commands\InstallCommand;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 
@@ -56,7 +53,7 @@ class InstallCommandTest extends BaseCommandTestCase
     public function it_displays_proper_command_structure(): void
     {
         $definition = $this->command->getDefinition();
-        
+
         // Check for expected options
         $this->assertTrue($definition->hasOption('force'));
         $this->assertTrue($definition->hasOption('skip-migration'));
@@ -89,7 +86,7 @@ class InstallCommandTest extends BaseCommandTestCase
     {
         $this->artisan('form-security:install', [
             '--force' => true,
-            '--skip-validation' => true
+            '--skip-validation' => true,
         ])
             ->expectsOutputToContain('Starting FormSecurity package installation')
             ->expectsOutputToContain('✗ Environment Validation')
@@ -102,7 +99,7 @@ class InstallCommandTest extends BaseCommandTestCase
         $this->artisan('form-security:install', [
             '--force' => true,
             '--skip-config' => true,
-            '--skip-validation' => true
+            '--skip-validation' => true,
         ])
             ->expectsOutputToContain('Starting FormSecurity package installation')
             ->expectsOutputToContain('✗ Configuration Publishing')
@@ -115,7 +112,7 @@ class InstallCommandTest extends BaseCommandTestCase
         $this->artisan('form-security:install', [
             '--force' => true,
             '--skip-migration' => true,
-            '--skip-validation' => true
+            '--skip-validation' => true,
         ])
             ->expectsOutputToContain('Starting FormSecurity package installation')
             ->expectsOutputToContain('✗ Database Migration')
@@ -126,7 +123,7 @@ class InstallCommandTest extends BaseCommandTestCase
     public function it_handles_rollback_request(): void
     {
         $this->artisan('form-security:install', [
-            '--rollback' => true
+            '--rollback' => true,
         ])
             ->expectsQuestion('Are you sure you want to rollback the installation?', 'yes')
             ->expectsOutputToContain('Rolling back FormSecurity installation')

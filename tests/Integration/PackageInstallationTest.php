@@ -16,9 +16,6 @@ declare(strict_types=1);
 namespace Tests\Integration;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use JTD\FormSecurity\Contracts\ConfigurationContract;
 use JTD\FormSecurity\Contracts\FormSecurityContract;
@@ -100,15 +97,15 @@ class PackageInstallationTest extends TestCase
 
         // Verify table structures
         $this->assertTrue(Schema::hasColumns('blocked_submissions', [
-            'id', 'form_identifier', 'ip_address', 'block_reason', 'blocked_at'
+            'id', 'form_identifier', 'ip_address', 'block_reason', 'blocked_at',
         ]));
-        
+
         $this->assertTrue(Schema::hasColumns('ip_reputation', [
-            'id', 'ip_address', 'reputation_score', 'reputation_status'
+            'id', 'ip_address', 'reputation_score', 'reputation_status',
         ]));
-        
+
         $this->assertTrue(Schema::hasColumns('spam_patterns', [
-            'id', 'name', 'pattern_type', 'pattern', 'action'
+            'id', 'name', 'pattern_type', 'pattern', 'action',
         ]));
     }
 
@@ -180,7 +177,7 @@ class PackageInstallationTest extends TestCase
         // First, install the package
         $this->artisan('form-security:install --force')
             ->assertExitCode(0);
-        
+
         $this->assertPackageInstalled();
 
         // Then rollback
@@ -212,15 +209,15 @@ class PackageInstallationTest extends TestCase
     public function it_handles_concurrent_installation_attempts(): void
     {
         // This test ensures the installation is idempotent
-        
+
         // First installation
         $this->artisan('form-security:install --force')
             ->assertExitCode(0);
-        
+
         // Second installation (should handle gracefully)
         $this->artisan('form-security:install --force')
             ->assertExitCode(0);
-        
+
         // Verify system is still functional
         $this->assertPackageInstalled();
     }

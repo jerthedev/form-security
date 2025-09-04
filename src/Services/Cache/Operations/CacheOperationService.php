@@ -20,7 +20,9 @@ class CacheOperationService implements CacheOperationServiceInterface
     use CacheUtilitiesTrait;
 
     private array $stats = [];
+
     private array $fluentContext = [];
+
     private array $configuration = [];
 
     public function __construct(
@@ -324,7 +326,7 @@ class CacheOperationService implements CacheOperationServiceInterface
             }
         }
 
-        return !in_array(false, $results, true);
+        return ! in_array(false, $results, true);
     }
 
     /**
@@ -408,7 +410,7 @@ class CacheOperationService implements CacheOperationServiceInterface
     public function getFromMemory(string|CacheKey $key, mixed $default = null): mixed
     {
         $repository = $this->repositories[CacheLevel::MEMORY->value] ?? null;
-        if (!$repository) {
+        if (! $repository) {
             return $default;
         }
 
@@ -431,9 +433,11 @@ class CacheOperationService implements CacheOperationServiceInterface
             }
 
             $this->stats['misses']++;
+
             return $default;
         } catch (\Exception $e) {
             $this->stats['misses']++;
+
             return $default;
         }
     }
@@ -444,7 +448,7 @@ class CacheOperationService implements CacheOperationServiceInterface
     public function getFromDatabase(string|CacheKey $key, mixed $default = null): mixed
     {
         $repository = $this->repositories[CacheLevel::DATABASE->value] ?? null;
-        if (!$repository) {
+        if (! $repository) {
             return $default;
         }
 
@@ -467,9 +471,11 @@ class CacheOperationService implements CacheOperationServiceInterface
             }
 
             $this->stats['misses']++;
+
             return $default;
         } catch (\Exception $e) {
             $this->stats['misses']++;
+
             return $default;
         }
     }
@@ -516,7 +522,7 @@ class CacheOperationService implements CacheOperationServiceInterface
     public function putInMemory(string|CacheKey $key, mixed $value, ?int $ttl = null): bool
     {
         $repository = $this->repositories[CacheLevel::MEMORY->value] ?? null;
-        if (!$repository) {
+        if (! $repository) {
             return false;
         }
 
@@ -549,7 +555,7 @@ class CacheOperationService implements CacheOperationServiceInterface
     public function putInDatabase(string|CacheKey $key, mixed $value, ?int $ttl = null): bool
     {
         $repository = $this->repositories[CacheLevel::DATABASE->value] ?? null;
-        if (!$repository) {
+        if (! $repository) {
             return false;
         }
 
@@ -770,7 +776,7 @@ class CacheOperationService implements CacheOperationServiceInterface
             }
         }
 
-        return !in_array(false, $results, true);
+        return ! in_array(false, $results, true);
     }
 
     /**
@@ -782,13 +788,14 @@ class CacheOperationService implements CacheOperationServiceInterface
         $results = [];
 
         foreach ($levels as $level) {
-            if (!$this->isLevelEnabled($level)) {
+            if (! $this->isLevelEnabled($level)) {
                 continue;
             }
 
             $repository = $this->repositories[$level->value] ?? null;
-            if (!$repository) {
+            if (! $repository) {
                 $results[] = false;
+
                 continue;
             }
 
@@ -804,8 +811,6 @@ class CacheOperationService implements CacheOperationServiceInterface
                 // Remove duplicate keys
                 $keysToRemove = array_unique($keysToRemove);
 
-
-
                 // Remove the keys from cache and tracking
                 foreach ($keysToRemove as $key) {
                     $repository->forget($key);
@@ -818,7 +823,7 @@ class CacheOperationService implements CacheOperationServiceInterface
             }
         }
 
-        return !in_array(false, $results, true);
+        return ! in_array(false, $results, true);
     }
 
     /**
@@ -830,6 +835,7 @@ class CacheOperationService implements CacheOperationServiceInterface
             // Enable the level by reinitializing the repository
             try {
                 $this->repositories[$level->value] = $this->cacheManager->store($level->getDriverName());
+
                 return true;
             } catch (\Exception $e) {
                 return false;
@@ -837,6 +843,7 @@ class CacheOperationService implements CacheOperationServiceInterface
         } else {
             // Disable the level by setting repository to null
             $this->repositories[$level->value] = null;
+
             return true;
         }
     }
@@ -854,13 +861,14 @@ class CacheOperationService implements CacheOperationServiceInterface
         $results = [];
 
         foreach ($levels as $level) {
-            if (!$this->isLevelEnabled($level)) {
+            if (! $this->isLevelEnabled($level)) {
                 continue;
             }
 
             $repository = $this->repositories[$level->value] ?? null;
-            if (!$repository) {
+            if (! $repository) {
                 $results[] = false;
+
                 continue;
             }
 
@@ -892,7 +900,7 @@ class CacheOperationService implements CacheOperationServiceInterface
             }
         }
 
-        return !in_array(false, $results, true);
+        return ! in_array(false, $results, true);
     }
 
     /**
@@ -1017,7 +1025,7 @@ class CacheOperationService implements CacheOperationServiceInterface
     {
         try {
             // Validate configuration before applying
-            if (!$this->validateConfiguration($config)) {
+            if (! $this->validateConfiguration($config)) {
                 return false;
             }
 
@@ -1053,7 +1061,7 @@ class CacheOperationService implements CacheOperationServiceInterface
             $this->invalidateByTags($configTags);
         } catch (\Exception $e) {
             // Log error but don't fail the configuration update
-            error_log("Failed to invalidate configuration cache: " . $e->getMessage());
+            error_log('Failed to invalidate configuration cache: '.$e->getMessage());
         }
     }
 
@@ -1064,20 +1072,20 @@ class CacheOperationService implements CacheOperationServiceInterface
     {
         // Validate cache levels if specified
         if (isset($config['levels'])) {
-            if (!is_array($config['levels'])) {
+            if (! is_array($config['levels'])) {
                 return false;
             }
 
-            $validLevels = array_map(fn($level) => $level->value, CacheLevel::cases());
+            $validLevels = array_map(fn ($level) => $level->value, CacheLevel::cases());
             foreach (array_keys($config['levels']) as $levelName) {
-                if (!in_array($levelName, $validLevels)) {
+                if (! in_array($levelName, $validLevels)) {
                     return false; // Invalid level name
                 }
             }
         }
 
         // Validate cache setting - should be array if present
-        if (isset($config['cache']) && !is_array($config['cache'])) {
+        if (isset($config['cache']) && ! is_array($config['cache'])) {
             return false;
         }
 
@@ -1095,6 +1103,7 @@ class CacheOperationService implements CacheOperationServiceInterface
         });
 
         $this->fluentContext['tags'] = array_values($validTags);
+
         return $this;
     }
 
@@ -1104,6 +1113,7 @@ class CacheOperationService implements CacheOperationServiceInterface
     public function prefix(string $prefix): self
     {
         $this->fluentContext['prefix'] = $prefix;
+
         return $this;
     }
 
@@ -1428,28 +1438,28 @@ class CacheOperationService implements CacheOperationServiceInterface
             'fallback_test' => false,
             'circuit_breaker_test' => false,
             'error_logging_test' => false,
-            'overall_status' => 'failed'
+            'overall_status' => 'failed',
         ];
 
         try {
             // Test basic connection to cache levels
-            $testKey = 'error_handling_test_' . time();
+            $testKey = 'error_handling_test_'.time();
             $testValue = 'test_value';
 
             $results['connection_test'] = $this->put($testKey, $testValue, 60);
             $this->forget($testKey);
 
             // Test fallback mechanisms
-            $results['fallback_test'] = !empty($this->fallbackStrategies);
+            $results['fallback_test'] = ! empty($this->fallbackStrategies);
 
             // Test circuit breaker
             $results['circuit_breaker_test'] = $this->configuration['error_handling']['circuit_breaker_enabled'] ?? false;
 
             // Test error logging
-            $results['error_logging_test'] = !empty($this->errorHandlers);
+            $results['error_logging_test'] = ! empty($this->errorHandlers);
 
             // Determine overall status
-            $passedTests = array_filter($results, fn($result) => $result === true);
+            $passedTests = array_filter($results, fn ($result) => $result === true);
             $results['overall_status'] = count($passedTests) >= 2 ? 'passed' : 'failed';
 
         } catch (\Exception $e) {
@@ -1614,16 +1624,16 @@ class CacheOperationService implements CacheOperationServiceInterface
         $keyString = $cacheKey instanceof CacheKey ? $cacheKey->toString() : $cacheKey;
 
         // Apply prefix
-        if (!empty($this->fluentContext['prefix'])) {
-            $keyString = $this->fluentContext['prefix'] . ':' . $keyString;
+        if (! empty($this->fluentContext['prefix'])) {
+            $keyString = $this->fluentContext['prefix'].':'.$keyString;
         }
 
         // Apply tags (for cache drivers that support tagging)
-        if (!empty($this->fluentContext['tags'])) {
+        if (! empty($this->fluentContext['tags'])) {
             // Tags would be handled by the cache driver
             // For now, just append to key for identification
             $tagString = implode(',', $this->fluentContext['tags']);
-            $keyString .= ':tags:' . $tagString;
+            $keyString .= ':tags:'.$tagString;
         }
 
         return $cacheKey instanceof CacheKey ? new CacheKey($keyString) : $keyString;
@@ -1636,12 +1646,12 @@ class CacheOperationService implements CacheOperationServiceInterface
     {
         try {
             $repository = $this->repositories[$level->value] ?? null;
-            if (!$repository) {
+            if (! $repository) {
                 return false;
             }
 
             // Test basic functionality
-            $testKey = 'health_check_' . time();
+            $testKey = 'health_check_'.time();
             $repository->put($testKey, 'test', 1);
             $result = $repository->get($testKey);
             $repository->forget($testKey);
@@ -1679,20 +1689,18 @@ class CacheOperationService implements CacheOperationServiceInterface
      */
     private function trackKey(CacheLevel $level, string $key, array $tags = []): void
     {
-        if (!isset($this->keyTracker[$level->value])) {
+        if (! isset($this->keyTracker[$level->value])) {
             $this->keyTracker[$level->value] = [];
         }
         $this->keyTracker[$level->value][$key] = true;
 
-
-
         // Track tags for this key
-        if (!empty($tags)) {
-            if (!isset($this->tagTracker[$level->value])) {
+        if (! empty($tags)) {
+            if (! isset($this->tagTracker[$level->value])) {
                 $this->tagTracker[$level->value] = [];
             }
             foreach ($tags as $tag) {
-                if (!isset($this->tagTracker[$level->value][$tag])) {
+                if (! isset($this->tagTracker[$level->value][$tag])) {
                     $this->tagTracker[$level->value][$tag] = [];
                 }
                 $this->tagTracker[$level->value][$tag][$key] = true;

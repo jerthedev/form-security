@@ -32,7 +32,7 @@ class SpamPatternsSeeder extends Seeder
                 'source' => 'manual',
                 'version' => '1.0',
             ],
-            
+
             // Suspicious email patterns
             [
                 'name' => 'Suspicious Email Patterns',
@@ -51,7 +51,7 @@ class SpamPatternsSeeder extends Seeder
                 'source' => 'manual',
                 'version' => '1.0',
             ],
-            
+
             // URL spam patterns
             [
                 'name' => 'Suspicious URLs',
@@ -70,7 +70,7 @@ class SpamPatternsSeeder extends Seeder
                 'source' => 'manual',
                 'version' => '1.0',
             ],
-            
+
             // Excessive content length
             [
                 'name' => 'Excessive Content Length',
@@ -88,7 +88,7 @@ class SpamPatternsSeeder extends Seeder
                 'source' => 'manual',
                 'version' => '1.0',
             ],
-            
+
             // Rapid submission pattern
             [
                 'name' => 'Rapid Submissions',
@@ -98,7 +98,7 @@ class SpamPatternsSeeder extends Seeder
                 'pattern_config' => json_encode([
                     'time_window' => 300, // 5 minutes
                     'operator' => 'greater_than',
-                    'track_by' => 'ip_address'
+                    'track_by' => 'ip_address',
                 ]),
                 'scope' => 'global',
                 'risk_score' => 80,
@@ -109,7 +109,7 @@ class SpamPatternsSeeder extends Seeder
                 'source' => 'manual',
                 'version' => '1.0',
             ],
-            
+
             // Honeypot field detection
             [
                 'name' => 'Honeypot Field Filled',
@@ -127,7 +127,7 @@ class SpamPatternsSeeder extends Seeder
                 'source' => 'manual',
                 'version' => '1.0',
             ],
-            
+
             // Profanity filter
             [
                 'name' => 'Profanity Filter',

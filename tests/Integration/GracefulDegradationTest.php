@@ -15,14 +15,11 @@ declare(strict_types=1);
 
 namespace Tests\Integration;
 
-use Exception;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use JTD\FormSecurity\Contracts\FormSecurityContract;
-use JTD\FormSecurity\Enums\BlockReason;
 use JTD\FormSecurity\Models\BlockedSubmission;
 use JTD\FormSecurity\Models\IpReputation;
 use JTD\FormSecurity\Models\SpamPattern;
@@ -76,7 +73,7 @@ class GracefulDegradationTest extends TestCase
 
         // System should still function, just without cache benefits
         $this->assertIsBool($result);
-        
+
         // Verify fallback to database queries works
         $patternFromDb = SpamPattern::find($pattern->id);
         $this->assertNotNull($patternFromDb);
@@ -88,10 +85,10 @@ class GracefulDegradationTest extends TestCase
     {
         // Create initial test data
         $pattern = SpamPattern::factory()->active()->create();
-        
+
         // Store in cache for fallback
         $pattern->storeInCache();
-        
+
         // Verify cached data is available
         $cachedPattern = SpamPattern::getCached((string) $pattern->id);
         $this->assertNotNull($cachedPattern);
@@ -100,7 +97,7 @@ class GracefulDegradationTest extends TestCase
         // (We can't actually disconnect the database in tests, so we verify cache fallback logic)
         $cacheKey = "spam_pattern_{$pattern->id}";
         $this->assertTrue(Cache::has($cacheKey) || true, 'Cache fallback logic should be available');
-        
+
         // Verify system can continue with cached data
         $formSecurity = app(FormSecurityContract::class);
 
@@ -117,7 +114,7 @@ class GracefulDegradationTest extends TestCase
     {
         // Test GeoIP service failure simulation
         $formSecurity = app(FormSecurityContract::class);
-        
+
         // Use an IP that would normally trigger GeoIP lookup
         $result = $formSecurity->validateSubmission([
             'email' => 'test@example.com',
@@ -126,7 +123,7 @@ class GracefulDegradationTest extends TestCase
 
         // System should continue to work even if GeoIP fails
         $this->assertIsBool($result);
-        
+
         // Verify that submission is still processed
         $this->assertTrue(true, 'System continues to function without external services');
     }
@@ -137,9 +134,9 @@ class GracefulDegradationTest extends TestCase
         // Test with invalid configuration
         Config::set('form-security.features.spam_detection', null);
         Config::set('form-security.patterns.max_length', 'invalid');
-        
+
         $formSecurity = app(FormSecurityContract::class);
-        
+
         // System should use default values and continue
         $result = $formSecurity->validateSubmission([
             'email' => 'test@example.com',
@@ -147,7 +144,7 @@ class GracefulDegradationTest extends TestCase
         ]);
 
         $this->assertIsBool($result);
-        
+
         // Verify system uses safe defaults
         $this->assertTrue(true, 'System handles invalid configuration gracefully');
     }
@@ -160,7 +157,7 @@ class GracefulDegradationTest extends TestCase
             'pattern' => 'spam-keyword',
             'pattern_type' => 'keyword',
         ]);
-        
+
         $inactivePattern = SpamPattern::factory()->inactive()->create([
             'pattern' => 'inactive-pattern',
             'pattern_type' => 'keyword',
@@ -168,7 +165,7 @@ class GracefulDegradationTest extends TestCase
 
         // Test that system works with partial pattern availability
         $formSecurity = app(FormSecurityContract::class);
-        
+
         // Test with spam content (should be blocked by active pattern)
         $spamResult = $formSecurity->validateSubmission([
             'email' => 'test@example.com',
@@ -191,7 +188,7 @@ class GracefulDegradationTest extends TestCase
         // Create large dataset to simulate memory pressure
         $patterns = SpamPattern::factory()->count(100)->active()->create();
         $submissions = BlockedSubmission::factory()->count(500)->create();
-        
+
         // Perform memory-intensive operations
         $largeDataset = [];
         for ($i = 0; $i < 1000; $i++) {
@@ -207,10 +204,10 @@ class GracefulDegradationTest extends TestCase
         ]);
 
         $this->assertIsBool($result);
-        
+
         // Clean up large dataset
         unset($largeDataset);
-        
+
         // Verify system is still responsive
         $analytics = BlockedSubmission::getAnalyticsSummary(now()->subDays(1), now());
         $this->assertIsArray($analytics);
@@ -220,10 +217,10 @@ class GracefulDegradationTest extends TestCase
     public function it_handles_concurrent_failure_scenarios(): void
     {
         // Simulate multiple concurrent issues
-        
+
         // 1. Cache issues
         Cache::flush();
-        
+
         // 2. Create some test data
         $pattern = SpamPattern::factory()->active()->create();
         $reputation = IpReputation::factory()->create([
@@ -232,9 +229,9 @@ class GracefulDegradationTest extends TestCase
 
         // 3. Test system under multiple stress conditions
         $formSecurity = app(FormSecurityContract::class);
-        
+
         $results = [];
-        
+
         // Simulate concurrent requests
         for ($i = 0; $i < 10; $i++) {
             $results[] = $formSecurity->validateSubmission([
@@ -249,7 +246,7 @@ class GracefulDegradationTest extends TestCase
         foreach ($results as $result) {
             $this->assertIsBool($result);
         }
-        
+
         // Verify system maintained data integrity
         $submissionCount = BlockedSubmission::where('form_identifier', 'concurrent-test-form')->count();
         $this->assertGreaterThanOrEqual(0, $submissionCount, 'System maintained data integrity during concurrent failures');
@@ -260,13 +257,13 @@ class GracefulDegradationTest extends TestCase
     {
         // Clear any existing logs
         Log::getLogger()->reset();
-        
+
         // Simulate cache failure
         Cache::flush();
         Config::set('cache.default', 'null');
-        
+
         $formSecurity = app(FormSecurityContract::class);
-        
+
         // Perform operations that would normally use cache
         $result = $formSecurity->validateSubmission([
             'email' => 'test@example.com',
@@ -274,7 +271,7 @@ class GracefulDegradationTest extends TestCase
         ]);
 
         $this->assertIsBool($result);
-        
+
         // Verify system continues to work (logging verification would require log inspection)
         $this->assertTrue(true, 'System continues to function and should log degradation events');
     }
@@ -284,13 +281,13 @@ class GracefulDegradationTest extends TestCase
     {
         // Create test data
         $pattern = SpamPattern::factory()->active()->create();
-        
+
         // Simulate temporary cache failure
         Cache::flush();
         Config::set('cache.default', 'null');
-        
+
         $formSecurity = app(FormSecurityContract::class);
-        
+
         // System should work without cache
         $result1 = $formSecurity->validateSubmission([
             'email' => 'test@example.com',
@@ -312,7 +309,7 @@ class GracefulDegradationTest extends TestCase
         ]);
 
         $this->assertIsBool($result2);
-        
+
         // Verify cache is working again
         $cachedPattern = SpamPattern::getCached((string) $pattern->id);
         $this->assertNotNull($cachedPattern, 'Cache functionality should be restored');

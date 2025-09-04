@@ -21,12 +21,11 @@ declare(strict_types=1);
 
 namespace JTD\FormSecurity\Tests\Integration\Console\Commands;
 
-use JTD\FormSecurity\Tests\TestCase;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Cache;
-use JTD\FormSecurity\Services\ConfigurationManager;
+use Illuminate\Support\Facades\File;
 use JTD\FormSecurity\Services\CacheManager;
+use JTD\FormSecurity\Services\ConfigurationManager;
+use JTD\FormSecurity\Tests\TestCase;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 
@@ -38,17 +37,17 @@ use PHPUnit\Framework\Attributes\Test;
 #[Group('integration')]
 class FormSecurityCommandsTest extends TestCase
 {
-
     protected ConfigurationManager $configManager;
+
     protected CacheManager $cacheManager;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->configManager = app(ConfigurationManager::class);
         $this->cacheManager = app(CacheManager::class);
-        
+
         // Ensure clean state for each test
         $this->clearTestData();
     }
@@ -154,7 +153,7 @@ class FormSecurityCommandsTest extends TestCase
         $this->artisan('form-security:cleanup', [
             '--type' => ['old-records'],
             '--days' => 30,
-            '--force' => true
+            '--force' => true,
         ])
             ->expectsOutput('FormSecurity Cleanup Operation')
             ->expectsOutput('Cleaning old database records...')
@@ -196,7 +195,7 @@ class FormSecurityCommandsTest extends TestCase
     public function health_check_command_exports_results(): void
     {
         $exportPath = storage_path('app/test-health-check.json');
-        
+
         // Ensure file doesn't exist before test
         if (File::exists($exportPath)) {
             File::delete($exportPath);
@@ -303,7 +302,7 @@ class FormSecurityCommandsTest extends TestCase
     {
         $this->artisan('form-security:report', [
             'type' => 'summary',
-            '--format' => 'json'
+            '--format' => 'json',
         ])
             ->expectsOutputToContain('"type": "summary"')
             ->assertExitCode(0);
@@ -314,7 +313,7 @@ class FormSecurityCommandsTest extends TestCase
     {
         $this->artisan('form-security:report', [
             'type' => 'summary',
-            '--format' => 'csv'
+            '--format' => 'csv',
         ])
             ->expectsOutputToContain('FormSecurity Report - Summary')
             ->assertExitCode(0);
@@ -333,7 +332,7 @@ class FormSecurityCommandsTest extends TestCase
     {
         $this->artisan('form-security:report', [
             'type' => 'summary',
-            '--format' => 'invalid'
+            '--format' => 'invalid',
         ])
             ->expectsOutputToContain('✗ Invalid format: invalid')
             ->assertExitCode(1);
@@ -344,14 +343,14 @@ class FormSecurityCommandsTest extends TestCase
     {
         $this->artisan('form-security:report', [
             'type' => 'summary',
-            '--period' => 0
+            '--period' => 0,
         ])
             ->expectsOutputToContain('✗ Invalid period: 0')
             ->assertExitCode(1);
 
         $this->artisan('form-security:report', [
             'type' => 'summary',
-            '--period' => 400
+            '--period' => 400,
         ])
             ->expectsOutputToContain('✗ Invalid period: 400')
             ->assertExitCode(1);
@@ -445,14 +444,14 @@ class FormSecurityCommandsTest extends TestCase
     {
         // Clear cache
         Cache::flush();
-        
+
         // Clean up any test files
         $testFiles = [
             storage_path('app/test-health-check.json'),
             storage_path('app/test-report.json'),
             storage_path('app/test-report.csv'),
         ];
-        
+
         foreach ($testFiles as $file) {
             if (File::exists($file)) {
                 File::delete($file);

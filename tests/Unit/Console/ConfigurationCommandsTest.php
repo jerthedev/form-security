@@ -19,7 +19,6 @@ declare(strict_types=1);
 
 namespace JTD\FormSecurity\Tests\Unit\Console;
 
-use Illuminate\Support\Facades\File;
 use JTD\FormSecurity\Console\Commands\ConfigurationPublishCommand;
 use JTD\FormSecurity\Console\Commands\ConfigurationValidateCommand;
 use JTD\FormSecurity\Console\Commands\FeatureToggleCommand;
@@ -114,10 +113,10 @@ class ConfigurationCommandsTest extends TestCase
     {
         // Arrange
         $command = new ConfigurationValidateCommand($this->configManager, $this->validator);
-        
+
         $this->configManager->shouldReceive('exportConfiguration')
             ->andReturn(['spam_threshold' => 1.5]); // Invalid value
-            
+
         $this->validator->shouldReceive('validateConfiguration')
             ->andReturn([
                 'valid' => false,

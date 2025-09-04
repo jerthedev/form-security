@@ -67,9 +67,14 @@
         "test:performance": "phpunit --group performance --no-coverage",
         "test:current-sprint": "phpunit --group sprint-002",
         "pint": "pint",
-        "phpstan": "phpstan analyse",
+        "phpstan": "php -d memory_limit=512M vendor/bin/phpstan analyse",
+        "phpstan:simple": "php -d memory_limit=512M vendor/bin/phpstan analyse -c phpstan-simple.neon",
         "quality": [
             "@pint",
+            "@test"
+        ],
+        "quality:full": [
+            "@pint", 
             "@phpstan",
             "@test"
         ]

@@ -10,5 +10,6 @@ namespace JTD\FormSecurity\Contracts\Cache;
 interface CacheMaintenanceServiceInterface
 {
     public function maintainDatabaseCache(array $operations = []): array;
+
     public function maintenance(array $operations = ['cleanup', 'optimize']): array;
 }

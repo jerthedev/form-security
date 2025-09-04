@@ -2,9 +2,9 @@
 
 namespace JTD\FormSecurity\Console\Commands;
 
+use Exception;
 use Illuminate\Console\Command;
 use JTD\FormSecurity\Services\GeoLite2ImportService;
-use Exception;
 
 class ImportGeoLite2Command extends Command
 {
@@ -34,8 +34,9 @@ class ImportGeoLite2Command extends Command
         $memoryLimit = (int) $this->option('memory-limit');
         $clear = $this->option('clear');
 
-        if (!$locationsPath && !$blocksPath) {
+        if (! $locationsPath && ! $blocksPath) {
             $this->error('Please specify at least one file to import using --locations or --blocks');
+
             return 1;
         }
 
@@ -50,6 +51,7 @@ class ImportGeoLite2Command extends Command
                 $this->info('Data cleared successfully.');
             } else {
                 $this->info('Import cancelled.');
+
                 return 0;
             }
         }
@@ -70,12 +72,12 @@ class ImportGeoLite2Command extends Command
             }
 
             $totalDuration = microtime(true) - $totalStartTime;
-            
+
             // Show final statistics
             $stats = $importService->getImportStats();
             $this->info('Import completed successfully!');
             $this->table(['Metric', 'Value'], [
-                ['Total Duration', number_format($totalDuration, 2) . ' seconds'],
+                ['Total Duration', number_format($totalDuration, 2).' seconds'],
                 ['Locations Count', number_format($stats['locations_count'])],
                 ['IPv4 Blocks Count', number_format($stats['ipv4_blocks_count'])],
                 ['Last Updated', $stats['last_updated']],
@@ -84,7 +86,8 @@ class ImportGeoLite2Command extends Command
             return 0;
 
         } catch (Exception $e) {
-            $this->error("Import failed: " . $e->getMessage());
+            $this->error('Import failed: '.$e->getMessage());
+
             return 1;
         }
     }
@@ -98,7 +101,7 @@ class ImportGeoLite2Command extends Command
         $lastProcessed = 0;
 
         $progressCallback = function (array $stats) use (&$progressBar, &$lastProcessed) {
-            if (!$progressBar) {
+            if (! $progressBar) {
                 $progressBar = $this->output->createProgressBar();
                 $progressBar->setFormat('debug');
             }
@@ -123,8 +126,8 @@ class ImportGeoLite2Command extends Command
             ['Imported', number_format($stats['imported'])],
             ['Skipped', number_format($stats['skipped'])],
             ['Errors', number_format($stats['errors'])],
-            ['Duration', number_format($stats['duration'], 2) . ' seconds'],
-            ['Rate', number_format($stats['processed'] / max($stats['duration'], 0.001), 0) . ' records/sec'],
+            ['Duration', number_format($stats['duration'], 2).' seconds'],
+            ['Rate', number_format($stats['processed'] / max($stats['duration'], 0.001), 0).' records/sec'],
         ]);
     }
 }

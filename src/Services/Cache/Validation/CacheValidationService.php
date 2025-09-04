@@ -315,8 +315,8 @@ class CacheValidationService implements CacheValidationServiceInterface
 
             try {
                 // Perform a test operation (put/get cycle)
-                $testKey = "concurrent_test_{$level->value}_" . $operations;
-                $testValue = "test_value_" . time();
+                $testKey = "concurrent_test_{$level->value}_".$operations;
+                $testValue = 'test_value_'.time();
 
                 // Test put operation
                 $repository = $this->repositories[$level->value] ?? null;
@@ -344,7 +344,7 @@ class CacheValidationService implements CacheValidationServiceInterface
             $expectedDuration = 1.0 / $targetOpsPerSecond;
             $actualDuration = $opEnd - $opStart;
             if ($actualDuration < $expectedDuration) {
-                usleep((int)(($expectedDuration - $actualDuration) * 1000000));
+                usleep((int) (($expectedDuration - $actualDuration) * 1000000));
             }
         }
 
@@ -358,9 +358,9 @@ class CacheValidationService implements CacheValidationServiceInterface
             'operations_completed' => $operations,
             'errors' => $errors,
             'success_rate' => $operations > 0 ? round(($operations / ($operations + $errors)) * 100, 2) : 0,
-            'avg_response_time_ms' => !empty($responseTimes) ? round(array_sum($responseTimes) / count($responseTimes), 2) : 0,
-            'max_response_time_ms' => !empty($responseTimes) ? round(max($responseTimes), 2) : 0,
-            'min_response_time_ms' => !empty($responseTimes) ? round(min($responseTimes), 2) : 0,
+            'avg_response_time_ms' => ! empty($responseTimes) ? round(array_sum($responseTimes) / count($responseTimes), 2) : 0,
+            'max_response_time_ms' => ! empty($responseTimes) ? round(max($responseTimes), 2) : 0,
+            'min_response_time_ms' => ! empty($responseTimes) ? round(min($responseTimes), 2) : 0,
             'duration_seconds' => round($totalDuration, 2),
         ];
     }
@@ -382,8 +382,8 @@ class CacheValidationService implements CacheValidationServiceInterface
 
             try {
                 // Test operations across all levels
-                $testKey = "combined_test_" . $operations;
-                $testValue = "test_value_" . time();
+                $testKey = 'combined_test_'.$operations;
+                $testValue = 'test_value_'.time();
 
                 // Test all levels in sequence
                 foreach (CacheLevel::cases() as $level) {
@@ -413,7 +413,7 @@ class CacheValidationService implements CacheValidationServiceInterface
             $expectedDuration = 1.0 / $targetRps;
             $actualDuration = $opEnd - $opStart;
             if ($actualDuration < $expectedDuration) {
-                usleep((int)(($expectedDuration - $actualDuration) * 1000000));
+                usleep((int) (($expectedDuration - $actualDuration) * 1000000));
             }
         }
 
@@ -426,9 +426,9 @@ class CacheValidationService implements CacheValidationServiceInterface
             'operations_completed' => $operations,
             'errors' => $errors,
             'success_rate' => $operations > 0 ? round(($operations / ($operations + $errors)) * 100, 2) : 0,
-            'avg_response_time_ms' => !empty($responseTimes) ? round(array_sum($responseTimes) / count($responseTimes), 2) : 0,
-            'max_response_time_ms' => !empty($responseTimes) ? round(max($responseTimes), 2) : 0,
-            'min_response_time_ms' => !empty($responseTimes) ? round(min($responseTimes), 2) : 0,
+            'avg_response_time_ms' => ! empty($responseTimes) ? round(array_sum($responseTimes) / count($responseTimes), 2) : 0,
+            'max_response_time_ms' => ! empty($responseTimes) ? round(max($responseTimes), 2) : 0,
+            'min_response_time_ms' => ! empty($responseTimes) ? round(min($responseTimes), 2) : 0,
             'duration_seconds' => round($totalDuration, 2),
         ];
     }
@@ -477,13 +477,13 @@ class CacheValidationService implements CacheValidationServiceInterface
     /**
      * Measure cache response time for a specific cache level.
      *
-     * @param CacheLevel $level The cache level to measure
+     * @param  CacheLevel  $level  The cache level to measure
      * @return float Response time in milliseconds
      */
     private function measureCacheResponseTime(CacheLevel $level): float
     {
-        $testKey = 'response_time_test_' . uniqid();
-        $testValue = 'test_value_' . time();
+        $testKey = 'response_time_test_'.uniqid();
+        $testValue = 'test_value_'.time();
 
         $startTime = microtime(true);
 
@@ -518,7 +518,7 @@ class CacheValidationService implements CacheValidationServiceInterface
     /**
      * Measure cache level size and usage.
      *
-     * @param CacheLevel $level The cache level to measure
+     * @param  CacheLevel  $level  The cache level to measure
      * @return array Size information including keys count and memory usage
      */
     private function measureCacheLevelSize(CacheLevel $level): array
@@ -530,20 +530,20 @@ class CacheValidationService implements CacheValidationServiceInterface
                     return [
                         'keys' => 0, // Array cache doesn't provide key count easily
                         'memory_usage' => memory_get_usage(),
-                        'estimated_size' => 0
+                        'estimated_size' => 0,
                     ];
                 case CacheLevel::DATABASE:
                     // For database cache, we could query the cache table
                     return [
                         'keys' => 0, // Would need to query cache table
                         'memory_usage' => 0,
-                        'estimated_size' => 0
+                        'estimated_size' => 0,
                     ];
                 default:
                     return [
                         'keys' => 0,
                         'memory_usage' => memory_get_usage(),
-                        'estimated_size' => 0
+                        'estimated_size' => 0,
                     ];
             }
         } catch (\Exception $e) {
@@ -551,7 +551,7 @@ class CacheValidationService implements CacheValidationServiceInterface
                 'keys' => 0,
                 'memory_usage' => 0,
                 'estimated_size' => 0,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ];
         }
     }

@@ -237,14 +237,18 @@ class ConfigurationSchemaBuilder
 
     private mixed $default = null;
 
+    /** @var array<string, mixed> */
     private array $validationRules = [];
 
+    /** @var array<mixed> */
     private array $allowedValues = [];
 
+    /** @var array<string, mixed> */
     private array $constraints = [];
 
     private ?string $description = null;
 
+    /** @var array<string> */
     private array $tags = [];
 
     private bool $sensitive = false;
@@ -274,6 +278,9 @@ class ConfigurationSchemaBuilder
         return $this;
     }
 
+    /**
+     * @param  array<string, mixed>  $rules
+     */
     public function rules(array $rules): self
     {
         $this->validationRules = $rules;
@@ -281,6 +288,9 @@ class ConfigurationSchemaBuilder
         return $this;
     }
 
+    /**
+     * @param  array<mixed>  $values
+     */
     public function allowedValues(array $values): self
     {
         $this->allowedValues = $values;
@@ -288,6 +298,9 @@ class ConfigurationSchemaBuilder
         return $this;
     }
 
+    /**
+     * @param  array<string, mixed>  $constraints
+     */
     public function constraints(array $constraints): self
     {
         $this->constraints = $constraints;
@@ -302,6 +315,9 @@ class ConfigurationSchemaBuilder
         return $this;
     }
 
+    /**
+     * @param  array<string>  $tags
+     */
     public function tags(array $tags): self
     {
         $this->tags = $tags;

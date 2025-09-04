@@ -18,14 +18,15 @@ namespace JTD\FormSecurity\Tests\Integration;
 
 use Illuminate\Cache\CacheManager as LaravelCacheManager;
 use Illuminate\Events\Dispatcher;
+use JTD\FormSecurity\Services\Cache\Warming\CacheWarmingService;
 use JTD\FormSecurity\Services\CacheInvalidationService;
 use JTD\FormSecurity\Services\CacheKeyManager;
 use JTD\FormSecurity\Services\CacheManager;
 use JTD\FormSecurity\Services\CachePerformanceMonitor;
-use JTD\FormSecurity\Services\Cache\Warming\CacheWarmingService;
 use JTD\FormSecurity\Tests\TestCase;
 use JTD\FormSecurity\ValueObjects\CacheKey;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\Large;
 use PHPUnit\Framework\Attributes\Test;
 
 #[Group('epic-001')]
@@ -347,6 +348,10 @@ class CacheSystemIntegrationTest extends TestCase
         $geoData = $this->cacheManager->get($geoKey);
         $maxAttempts = $this->cacheManager->get($configKey);
 
+        $this->assertNotNull($userReputation, 'User reputation data should be cached');
+        $this->assertNotNull($geoData, 'Geo data should be cached');
+        $this->assertNotNull($maxAttempts, 'Max attempts config should be cached');
+        
         $this->assertEquals(0.95, $userReputation['reputation']);
         $this->assertEquals('US', $geoData['country']);
         $this->assertEquals(5, $maxAttempts);
@@ -376,7 +381,7 @@ class CacheSystemIntegrationTest extends TestCase
     #[Test]
     public function it_can_handle_complex_multi_level_scenarios(): void
     {
-        $baseKey = 'complex_scenario_test_' . uniqid(); // Use unique key to avoid conflicts
+        $baseKey = 'complex_scenario_test_'.uniqid(); // Use unique key to avoid conflicts
 
         // 1. Create different data at each level to test fallback behavior
         $requestData = ['level' => 'request', 'timestamp' => microtime(true)];
@@ -471,11 +476,14 @@ class CacheSystemIntegrationTest extends TestCase
         // For integration testing with mixed access patterns, 40% is reasonable
         $this->assertGreaterThan(40.0, $stats['hit_ratio'], 'Hit ratio should be >40% for mixed access patterns');
 
-        echo "\nHigh Volume Integration Test:\n";
-        echo "Operations: {$operationCount}\n";
-        echo 'Total Time: '.round($totalTime, 3)."s\n";
-        echo 'Operations/Second: '.round($operationsPerSecond, 2)."\n";
-        echo "Hit Ratio: {$stats['hit_ratio']}%\n";
+        // Performance metrics (output suppressed to avoid risky test warnings)
+        $metrics = [
+            'operations' => $operationCount,
+            'total_time' => round($totalTime, 3),
+            'operations_per_second' => round($operationsPerSecond, 2),
+            'hit_ratio' => $stats['hit_ratio']
+        ];
+        // Results available in $metrics for debugging if needed
     }
 
     #[Test]
@@ -528,18 +536,21 @@ class CacheSystemIntegrationTest extends TestCase
         $this->assertTrue($this->cacheManager->put($testKey, 'post_stress_value'));
         $this->assertEquals('post_stress_value', $this->cacheManager->get($testKey));
 
-        echo "\nStress Test Results:\n";
-        echo "Duration: {$stressTestDuration}s\n";
-        echo "Operations: {$operationCount}\n";
-        echo "Errors: {$errors}\n";
-        echo 'Error Rate: '.round($errorRate, 2)."%\n";
+        // Stress test metrics (output suppressed to avoid risky test warnings)
+        $stressMetrics = [
+            'duration' => $stressTestDuration,
+            'operations' => $operationCount,
+            'errors' => $errors,
+            'error_rate' => round($errorRate, 2)
+        ];
+        // Results available in $stressMetrics for debugging if needed
     }
 
     #[Test]
     public function it_can_handle_cache_system_recovery_scenarios(): void
     {
         // Use a simple string key instead of CacheKey with tags to avoid normalization issues
-        $recoveryKey = 'recovery_test_' . uniqid();
+        $recoveryKey = 'recovery_test_'.uniqid();
         $recoveryValue = 'recovery_test_value';
 
         // 1. Store data in all levels
@@ -570,7 +581,7 @@ class CacheSystemIntegrationTest extends TestCase
 
         // Debug: Check if the value was actually stored
         $storedValue = $this->cacheManager->get($recoveryKey);
-        $this->assertEquals($recoveryValue, $storedValue, "Expected '{$recoveryValue}' but got: " . var_export($storedValue, true));
+        $this->assertEquals($recoveryValue, $storedValue, "Expected '{$recoveryValue}' but got: ".var_export($storedValue, true));
 
         // 5. Verify system health after recovery
         $healthMetrics = $this->performanceMonitor->getDashboardData();

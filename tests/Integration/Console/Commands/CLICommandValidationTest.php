@@ -74,7 +74,7 @@ class CLICommandValidationTest extends TestCase
             $this->artisan('form-security:health-check');
             $this->assertTrue(true, 'Health check command executed without crashing');
         } catch (\Exception $e) {
-            $this->fail('Health check command should not crash: ' . $e->getMessage());
+            $this->fail('Health check command should not crash: '.$e->getMessage());
         }
     }
 
@@ -184,7 +184,7 @@ class CLICommandValidationTest extends TestCase
     public function cli_commands_test_coverage_validation(): void
     {
         // This test validates that our CLI command testing meets the acceptance criteria
-        
+
         $testFiles = [
             'tests/Unit/Console/Commands/BaseCommandTestCase.php',
             'tests/Unit/Console/Commands/InstallCommandTest.php',

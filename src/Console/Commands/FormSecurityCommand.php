@@ -7,10 +7,9 @@ namespace JTD\FormSecurity\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use JTD\FormSecurity\Services\ConfigurationManager;
 use JTD\FormSecurity\Services\CacheManager;
+use JTD\FormSecurity\Services\ConfigurationManager;
 use Symfony\Component\Console\Helper\ProgressBar;
-use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * Base FormSecurity command class.
@@ -44,7 +43,7 @@ abstract class FormSecurityCommand extends Command
         CacheManager $cacheManager
     ) {
         parent::__construct();
-        
+
         $this->configManager = $configManager;
         $this->cacheManager = $cacheManager;
     }
@@ -55,30 +54,31 @@ abstract class FormSecurityCommand extends Command
     public function handle(): int
     {
         $this->startTime = microtime(true);
-        
+
         try {
             $this->displayHeader();
-            
+
             // Perform pre-execution checks
-            if (!$this->preExecutionChecks()) {
+            if (! $this->preExecutionChecks()) {
                 return Command::FAILURE;
             }
-            
+
             // Execute the main command logic
             $result = $this->executeCommand();
-            
+
             $this->displayFooter($result);
-            
+
             return $result;
         } catch (\Exception $e) {
             $this->handleException($e);
+
             return Command::FAILURE;
         }
     }
 
     /**
      * Execute the main command logic.
-     * 
+     *
      * This method should be implemented by child classes.
      */
     abstract protected function executeCommand(): int;
@@ -114,7 +114,7 @@ abstract class FormSecurityCommand extends Command
         $executionTime = round(microtime(true) - $this->startTime, 2);
         $status = $result === Command::SUCCESS ? 'SUCCESS' : 'FAILURE';
         $statusColor = $result === Command::SUCCESS ? 'green' : 'red';
-        
+
         $this->newLine();
         $this->line('─────────────────────────────────────────────────────────────');
         $this->line("Status: <fg={$statusColor}>{$status}</>");
@@ -131,13 +131,13 @@ abstract class FormSecurityCommand extends Command
         $this->newLine();
         $this->error('Command execution failed:');
         $this->error($e->getMessage());
-        
+
         if ($this->option('verbose')) {
             $this->newLine();
             $this->line('<comment>Stack Trace:</comment>');
             $this->line($e->getTraceAsString());
         }
-        
+
         $this->newLine();
         $this->line('<comment>For more details, run with --verbose flag</comment>');
     }
@@ -149,6 +149,7 @@ abstract class FormSecurityCommand extends Command
     {
         try {
             DB::connection()->getPdo();
+
             return true;
         } catch (\Exception $e) {
             // In package context, database might not be configured
@@ -166,6 +167,7 @@ abstract class FormSecurityCommand extends Command
             Cache::put('form_security_test', 'test', 1);
             $result = Cache::get('form_security_test') === 'test';
             Cache::forget('form_security_test');
+
             return $result;
         } catch (\Exception $e) {
             // In package context, cache might not be configured
@@ -184,21 +186,21 @@ abstract class FormSecurityCommand extends Command
         $progressBar->setBarCharacter('<fg=green>█</>');
         $progressBar->setEmptyBarCharacter('<fg=red>░</>');
         $progressBar->setProgressCharacter('<fg=green>█</>');
-        
+
         return $progressBar;
     }
 
     /**
      * Display a formatted table with consistent styling.
      */
-    protected function displayTable(array $headers, array $rows, string $title = null): void
+    protected function displayTable(array $headers, array $rows, ?string $title = null): void
     {
         if ($title) {
             $this->newLine();
             $this->line("<comment>{$title}</comment>");
             $this->newLine();
         }
-        
+
         $this->table($headers, $rows);
     }
 
@@ -237,7 +239,7 @@ abstract class FormSecurityCommand extends Command
         if ($this->option('force')) {
             return true;
         }
-        
+
         return $this->confirm($message, $default);
     }
 
@@ -274,12 +276,12 @@ abstract class FormSecurityCommand extends Command
     protected function formatBytes(int $bytes, int $precision = 2): string
     {
         $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-        
+
         for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
             $bytes /= 1024;
         }
-        
-        return round($bytes, $precision) . ' ' . $units[$i];
+
+        return round($bytes, $precision).' '.$units[$i];
     }
 
     /**
@@ -288,12 +290,12 @@ abstract class FormSecurityCommand extends Command
     protected function formatDuration(float $seconds): string
     {
         if ($seconds < 60) {
-            return round($seconds, 2) . 's';
+            return round($seconds, 2).'s';
         }
-        
+
         $minutes = floor($seconds / 60);
         $seconds = $seconds % 60;
-        
-        return $minutes . 'm ' . round($seconds, 2) . 's';
+
+        return $minutes.'m '.round($seconds, 2).'s';
     }
 }

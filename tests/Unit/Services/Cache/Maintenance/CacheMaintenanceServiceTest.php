@@ -34,6 +34,7 @@ use PHPUnit\Framework\Attributes\Test;
 class CacheMaintenanceServiceTest extends TestCase
 {
     private CacheMaintenanceService $service;
+
     private LaravelCacheManager $cacheManager;
 
     protected function setUp(): void
@@ -148,7 +149,7 @@ class CacheMaintenanceServiceTest extends TestCase
     {
         // Test that maintenance doesn't throw exceptions
         $result = $this->service->maintenance(['cleanup', 'optimize']);
-        
+
         $this->assertIsArray($result);
         // Should not throw any exceptions during maintenance
     }

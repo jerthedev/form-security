@@ -33,6 +33,7 @@ use PHPUnit\Framework\Attributes\Test;
 class RequestLevelCacheRepositoryTest extends TestCase
 {
     private RequestLevelCacheRepository $repository;
+
     private array $requestCache;
 
     protected function setUp(): void
@@ -182,7 +183,7 @@ class RequestLevelCacheRepositoryTest extends TestCase
         $data = [
             'key1' => 'value1',
             'key2' => 'value2',
-            'key3' => 'value3'
+            'key3' => 'value3',
         ];
 
         foreach ($data as $key => $value) {
@@ -204,7 +205,7 @@ class RequestLevelCacheRepositoryTest extends TestCase
         $data = [
             'multi_key1' => 'multi_value1',
             'multi_key2' => 'multi_value2',
-            'multi_key3' => 'multi_value3'
+            'multi_key3' => 'multi_value3',
         ];
 
         $this->assertTrue($this->repository->putMany($data));
@@ -227,7 +228,7 @@ class RequestLevelCacheRepositoryTest extends TestCase
     {
         $data = [
             'all_key1' => 'all_value1',
-            'all_key2' => 'all_value2'
+            'all_key2' => 'all_value2',
         ];
 
         foreach ($data as $key => $value) {
@@ -296,7 +297,7 @@ class RequestLevelCacheRepositoryTest extends TestCase
         $value = 'string_value';
 
         $this->repository->put($key, $value);
-        
+
         // Increment should return false for non-numeric values
         $result = $this->repository->increment($key);
         $this->assertFalse($result);

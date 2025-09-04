@@ -29,6 +29,8 @@ use Illuminate\Database\Eloquent\Model;
  *
  * Custom cast for handling IP address ranges with CIDR notation support.
  * Provides validation and conversion between different IP range formats.
+ *
+ * @implements CastsAttributes<array<string, mixed>|null, array<string, mixed>|string|null>
  */
 class IpRangeCast implements CastsAttributes
 {
@@ -36,6 +38,7 @@ class IpRangeCast implements CastsAttributes
      * Cast the given value to IP range array
      *
      * @param  array<string, mixed>  $attributes
+     * @return array<string, mixed>|null
      */
     public function get(Model $model, string $key, mixed $value, array $attributes): ?array
     {
@@ -78,7 +81,12 @@ class IpRangeCast implements CastsAttributes
         if (is_string($value) && strpos($value, '/') !== false) {
             $parsed = $this->parseCidrNotation($value);
 
-            return $parsed ? json_encode($parsed) : null;
+            if ($parsed === null) {
+                return null;
+            }
+            $encoded = json_encode($parsed);
+
+            return $encoded !== false ? $encoded : null;
         }
 
         if (! is_array($value)) {
@@ -87,11 +95,18 @@ class IpRangeCast implements CastsAttributes
 
         $ipRange = $this->validateAndFormatIpRange($value);
 
-        return $ipRange ? json_encode($ipRange) : null;
+        if ($ipRange === null) {
+            return null;
+        }
+        $encoded = json_encode($ipRange);
+
+        return $encoded !== false ? $encoded : null;
     }
 
     /**
      * Parse CIDR notation into IP range array
+     *
+     * @return array<string, mixed>|null
      */
     private function parseCidrNotation(string $cidr): ?array
     {
@@ -155,6 +170,11 @@ class IpRangeCast implements CastsAttributes
 
         $startLong = ip2long($startIp);
         $endLong = ip2long($endIp);
+
+        // Handle false return from ip2long
+        if ($startLong === false || $endLong === false) {
+            return null;
+        }
 
         // Ensure start is less than or equal to end
         if ($startLong > $endLong) {

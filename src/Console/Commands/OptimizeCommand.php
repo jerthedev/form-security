@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace JTD\FormSecurity\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Artisan;
-use JTD\FormSecurity\Services\ConfigurationManager;
-use JTD\FormSecurity\Services\CacheManager;
+use Illuminate\Support\Facades\DB;
 
 /**
  * FormSecurity optimization command.
@@ -83,7 +81,7 @@ class OptimizeCommand extends FormSecurityCommand
         }
 
         // Run post-optimization benchmarks
-        if ($benchmark && !$dryRun) {
+        if ($benchmark && ! $dryRun) {
             $this->runBenchmarks('after', $dryRun);
             $this->compareBenchmarks();
         }
@@ -99,13 +97,13 @@ class OptimizeCommand extends FormSecurityCommand
     protected function optimizeCache(bool $aggressive, bool $dryRun): void
     {
         $this->line('<comment>Cache Optimization</comment>');
-        
+
         $progressBar = $this->createProgressBar(5);
         $progressBar->start();
 
         // Clear expired entries
         $progressBar->setMessage('Clearing expired cache entries...');
-        if (!$dryRun) {
+        if (! $dryRun) {
             try {
                 $result = $this->cacheManager->maintenance(['cleanup']);
                 $expired = $result['cleanup']['items_processed'] ?? 0;
@@ -120,7 +118,7 @@ class OptimizeCommand extends FormSecurityCommand
 
         // Warm up critical caches
         $progressBar->setMessage('Warming up critical caches...');
-        if (!$dryRun) {
+        if (! $dryRun) {
             try {
                 $this->cacheManager->warm([]);
                 $this->optimizationResults['cache']['warmed_up'] = true;
@@ -134,7 +132,7 @@ class OptimizeCommand extends FormSecurityCommand
 
         // Optimize cache memory usage
         $progressBar->setMessage('Optimizing cache memory usage...');
-        if (!$dryRun) {
+        if (! $dryRun) {
             try {
                 $this->cacheManager->maintenance(['optimize']);
                 $this->optimizationResults['cache']['memory_optimized'] = true;
@@ -148,7 +146,7 @@ class OptimizeCommand extends FormSecurityCommand
 
         // Rebuild cache indexes
         $progressBar->setMessage('Rebuilding cache indexes...');
-        if (!$dryRun) {
+        if (! $dryRun) {
             try {
                 $this->cacheManager->maintenance(['rebuild']);
                 $this->optimizationResults['cache']['indexes_rebuilt'] = true;
@@ -162,7 +160,7 @@ class OptimizeCommand extends FormSecurityCommand
 
         // Configure cache settings
         $progressBar->setMessage('Configuring optimal cache settings...');
-        if (!$dryRun) {
+        if (! $dryRun) {
             $this->optimizeCacheSettings($aggressive);
             $this->optimizationResults['cache']['settings_optimized'] = true;
         } else {
@@ -181,13 +179,13 @@ class OptimizeCommand extends FormSecurityCommand
     protected function optimizeDatabase(bool $aggressive, bool $dryRun): void
     {
         $this->line('<comment>Database Optimization</comment>');
-        
+
         $progressBar = $this->createProgressBar(4);
         $progressBar->start();
 
         // Analyze table statistics
         $progressBar->setMessage('Analyzing table statistics...');
-        if (!$dryRun) {
+        if (! $dryRun) {
             try {
                 $this->analyzeTableStatistics();
                 $this->optimizationResults['database']['statistics_analyzed'] = true;
@@ -201,7 +199,7 @@ class OptimizeCommand extends FormSecurityCommand
 
         // Optimize table indexes
         $progressBar->setMessage('Optimizing database indexes...');
-        if (!$dryRun) {
+        if (! $dryRun) {
             try {
                 $this->optimizeIndexes($aggressive);
                 $this->optimizationResults['database']['indexes_optimized'] = true;
@@ -215,7 +213,7 @@ class OptimizeCommand extends FormSecurityCommand
 
         // Clean up old data
         $progressBar->setMessage('Cleaning up old database records...');
-        if (!$dryRun) {
+        if (! $dryRun) {
             try {
                 $cleaned = $this->cleanupOldDatabaseRecords();
                 $this->optimizationResults['database']['records_cleaned'] = $cleaned;
@@ -229,7 +227,7 @@ class OptimizeCommand extends FormSecurityCommand
 
         // Optimize database configuration
         $progressBar->setMessage('Optimizing database configuration...');
-        if (!$dryRun) {
+        if (! $dryRun) {
             try {
                 $this->optimizeDatabaseConfiguration($aggressive);
                 $this->optimizationResults['database']['config_optimized'] = true;
@@ -252,13 +250,13 @@ class OptimizeCommand extends FormSecurityCommand
     protected function optimizeConfiguration(bool $aggressive, bool $dryRun): void
     {
         $this->line('<comment>Configuration Optimization</comment>');
-        
+
         $progressBar = $this->createProgressBar(3);
         $progressBar->start();
 
         // Optimize Laravel configuration
         $progressBar->setMessage('Optimizing Laravel configuration...');
-        if (!$dryRun) {
+        if (! $dryRun) {
             try {
                 Artisan::call('config:cache');
                 Artisan::call('route:cache');
@@ -275,7 +273,7 @@ class OptimizeCommand extends FormSecurityCommand
 
         // Optimize FormSecurity configuration
         $progressBar->setMessage('Optimizing FormSecurity configuration...');
-        if (!$dryRun) {
+        if (! $dryRun) {
             try {
                 $this->optimizeFormSecurityConfig($aggressive);
                 $this->optimizationResults['config']['formsecurity_optimized'] = true;
@@ -289,7 +287,7 @@ class OptimizeCommand extends FormSecurityCommand
 
         // Validate optimized configuration
         $progressBar->setMessage('Validating optimized configuration...');
-        if (!$dryRun) {
+        if (! $dryRun) {
             try {
                 $config = $this->configManager->exportConfiguration();
                 $validation = $this->configManager->validateConfig($config);
@@ -313,9 +311,10 @@ class OptimizeCommand extends FormSecurityCommand
     protected function runBenchmarks(string $phase, bool $dryRun): void
     {
         $this->line("<comment>Running {$phase} optimization benchmarks...</comment>");
-        
+
         if ($dryRun) {
             $this->line('Would run performance benchmarks');
+
             return;
         }
 
@@ -349,7 +348,7 @@ class OptimizeCommand extends FormSecurityCommand
 
         $headers = ['Operation', 'Time (ms)', 'Operations/sec'];
         $rows = [];
-        
+
         foreach ($benchmarks as $operation => $result) {
             $rows[] = [
                 ucfirst(str_replace('_', ' ', $operation)),
@@ -358,7 +357,7 @@ class OptimizeCommand extends FormSecurityCommand
             ];
         }
 
-        $this->displayTable($headers, $rows, ucfirst($phase) . ' Optimization Benchmarks');
+        $this->displayTable($headers, $rows, ucfirst($phase).' Optimization Benchmarks');
     }
 
     /**
@@ -366,8 +365,8 @@ class OptimizeCommand extends FormSecurityCommand
      */
     protected function compareBenchmarks(): void
     {
-        if (!isset($this->optimizationResults['benchmarks']['before']) || 
-            !isset($this->optimizationResults['benchmarks']['after'])) {
+        if (! isset($this->optimizationResults['benchmarks']['before']) ||
+            ! isset($this->optimizationResults['benchmarks']['after'])) {
             return;
         }
 
@@ -382,19 +381,21 @@ class OptimizeCommand extends FormSecurityCommand
         $rows = [];
 
         foreach ($before as $operation => $beforeResult) {
-            if (!isset($after[$operation])) continue;
+            if (! isset($after[$operation])) {
+                continue;
+            }
 
             $afterResult = $after[$operation];
 
             // Avoid division by zero
             if ($beforeResult['time'] == 0) {
                 $improvement = 0;
-                $improvementText = "N/A";
+                $improvementText = 'N/A';
             } else {
                 $improvement = (($beforeResult['time'] - $afterResult['time']) / $beforeResult['time']) * 100;
                 $improvementText = $improvement > 0 ?
-                    "<fg=green>+" . number_format($improvement, 1) . "%</>" :
-                    "<fg=red>" . number_format($improvement, 1) . "%</>";
+                    '<fg=green>+'.number_format($improvement, 1).'%</>' :
+                    '<fg=red>'.number_format($improvement, 1).'%</>';
             }
 
             $rows[] = [
@@ -439,7 +440,7 @@ class OptimizeCommand extends FormSecurityCommand
                 DB::statement("ANALYZE TABLE {$table}");
             } catch (\Exception $e) {
                 // Handle different database drivers
-                $this->line("Could not analyze table {$table}: " . $e->getMessage());
+                $this->line("Could not analyze table {$table}: ".$e->getMessage());
             }
         }
     }
@@ -473,7 +474,7 @@ class OptimizeCommand extends FormSecurityCommand
                     ->delete();
                 $deleted += $count;
             } catch (\Exception $e) {
-                $this->line("Could not clean table {$table}: " . $e->getMessage());
+                $this->line("Could not clean table {$table}: ".$e->getMessage());
             }
         }
 
@@ -515,11 +516,11 @@ class OptimizeCommand extends FormSecurityCommand
         $start = microtime(true);
 
         for ($i = 0; $i < $iterations; $i++) {
-            $this->cacheManager->get('benchmark_key_' . ($i % 10));
+            $this->cacheManager->get('benchmark_key_'.($i % 10));
         }
 
         $time = (microtime(true) - $start) * 1000;
-        
+
         return [
             'time' => $time / $iterations,
             'ops_per_sec' => $iterations / ($time / 1000),
@@ -535,11 +536,11 @@ class OptimizeCommand extends FormSecurityCommand
         $start = microtime(true);
 
         for ($i = 0; $i < $iterations; $i++) {
-            $this->cacheManager->set('benchmark_key_' . $i, 'value_' . $i, 60);
+            $this->cacheManager->set('benchmark_key_'.$i, 'value_'.$i, 60);
         }
 
         $time = (microtime(true) - $start) * 1000;
-        
+
         return [
             'time' => $time / $iterations,
             'ops_per_sec' => $iterations / ($time / 1000),
@@ -559,7 +560,7 @@ class OptimizeCommand extends FormSecurityCommand
         }
 
         $time = (microtime(true) - $start) * 1000;
-        
+
         return [
             'time' => $time / $iterations,
             'ops_per_sec' => $iterations / ($time / 1000),
@@ -579,7 +580,7 @@ class OptimizeCommand extends FormSecurityCommand
         }
 
         $time = (microtime(true) - $start) * 1000;
-        
+
         return [
             'time' => $time / $iterations,
             'ops_per_sec' => $iterations / ($time / 1000),
@@ -597,33 +598,34 @@ class OptimizeCommand extends FormSecurityCommand
 
         if ($dryRun) {
             $this->line('<fg=yellow>DRY RUN COMPLETED - No actual optimization was performed</fg=yellow>');
+
             return;
         }
 
         $summary = [];
-        
-        if (!empty($this->optimizationResults['cache'])) {
+
+        if (! empty($this->optimizationResults['cache'])) {
             $cache = $this->optimizationResults['cache'];
             $summary[] = ['Cache', 'Expired entries cleared, memory optimized, indexes rebuilt'];
         }
 
-        if (!empty($this->optimizationResults['database'])) {
+        if (! empty($this->optimizationResults['database'])) {
             $db = $this->optimizationResults['database'];
             $cleaned = $db['records_cleaned'] ?? 0;
             $summary[] = ['Database', "Statistics analyzed, indexes optimized, {$cleaned} old records cleaned"];
         }
 
-        if (!empty($this->optimizationResults['config'])) {
+        if (! empty($this->optimizationResults['config'])) {
             $summary[] = ['Configuration', 'Laravel and FormSecurity configurations optimized and cached'];
         }
 
-        if (!empty($summary)) {
+        if (! empty($summary)) {
             $headers = ['Component', 'Optimizations Applied'];
             $this->displayTable($headers, $summary);
         }
 
         $this->displaySuccess('All optimizations completed successfully!');
-        
+
         $this->newLine();
         $this->line('<comment>Recommendations:</comment>');
         $this->line('• Run health check to verify optimizations: php artisan form-security:health-check');

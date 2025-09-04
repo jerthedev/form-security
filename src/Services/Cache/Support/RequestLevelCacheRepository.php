@@ -6,7 +6,7 @@ namespace JTD\FormSecurity\Services\Cache\Support;
 
 /**
  * RequestLevelCacheRepository
- * 
+ *
  * In-memory cache repository for request-level caching
  * This provides the same interface as Laravel's cache repositories
  * but stores data in a simple array that persists only for the current request
@@ -14,6 +14,7 @@ namespace JTD\FormSecurity\Services\Cache\Support;
 class RequestLevelCacheRepository
 {
     private array $data = [];
+
     private array $expiration = [];
 
     public function __construct(private array &$requestCache)
@@ -28,7 +29,7 @@ class RequestLevelCacheRepository
     public function get(string $key, mixed $default = null): mixed
     {
         // Check if key exists and hasn't expired
-        if (!$this->has($key)) {
+        if (! $this->has($key)) {
             return $default;
         }
 
@@ -38,10 +39,10 @@ class RequestLevelCacheRepository
     /**
      * Store an item in the cache for a given number of seconds
      */
-    public function put(string $key, mixed $value, int $seconds = null): bool
+    public function put(string $key, mixed $value, ?int $seconds = null): bool
     {
         $this->data[$key] = $value;
-        
+
         // Set expiration if TTL is provided
         if ($seconds !== null && $seconds > 0) {
             $this->expiration[$key] = time() + $seconds;
@@ -58,6 +59,7 @@ class RequestLevelCacheRepository
         $this->data[$key] = $value;
         // Remove any expiration
         unset($this->expiration[$key]);
+
         return true;
     }
 
@@ -68,6 +70,7 @@ class RequestLevelCacheRepository
     {
         unset($this->data[$key]);
         unset($this->expiration[$key]);
+
         return true;
     }
 
@@ -78,6 +81,7 @@ class RequestLevelCacheRepository
     {
         $this->data = [];
         $this->expiration = [];
+
         return true;
     }
 
@@ -87,7 +91,7 @@ class RequestLevelCacheRepository
     public function has(string $key): bool
     {
         // Check if key exists
-        if (!array_key_exists($key, $this->data)) {
+        if (! array_key_exists($key, $this->data)) {
             return false;
         }
 
@@ -95,6 +99,7 @@ class RequestLevelCacheRepository
         if (isset($this->expiration[$key]) && $this->expiration[$key] <= time()) {
             // Key has expired, remove it
             $this->forget($key);
+
             return false;
         }
 
@@ -104,7 +109,7 @@ class RequestLevelCacheRepository
     /**
      * Store an item in the cache if the key doesn't exist
      */
-    public function add(string $key, mixed $value, int $seconds = null): bool
+    public function add(string $key, mixed $value, ?int $seconds = null): bool
     {
         if ($this->has($key)) {
             return false;
@@ -118,18 +123,20 @@ class RequestLevelCacheRepository
      */
     public function increment(string $key, int $value = 1): int|false
     {
-        if (!$this->has($key)) {
+        if (! $this->has($key)) {
             $this->put($key, $value);
+
             return $value;
         }
 
         $current = $this->get($key, 0);
-        if (!is_numeric($current)) {
+        if (! is_numeric($current)) {
             return false;
         }
 
-        $new = (int)$current + $value;
+        $new = (int) $current + $value;
         $this->put($key, $new);
+
         return $new;
     }
 
@@ -150,17 +157,19 @@ class RequestLevelCacheRepository
         foreach ($keys as $key) {
             $result[$key] = $this->get($key);
         }
+
         return $result;
     }
 
     /**
      * Store multiple items in the cache for a given number of seconds
      */
-    public function putMany(array $values, int $seconds = null): bool
+    public function putMany(array $values, ?int $seconds = null): bool
     {
         foreach ($values as $key => $value) {
             $this->put($key, $value, $seconds);
         }
+
         return true;
     }
 
@@ -179,6 +188,7 @@ class RequestLevelCacheRepository
     {
         // Clean expired items first
         $this->cleanExpired();
+
         return $this->data;
     }
 
@@ -201,6 +211,7 @@ class RequestLevelCacheRepository
     public function size(): array
     {
         $this->cleanExpired();
+
         return [
             'keys' => count($this->data),
             'memory_usage' => strlen(serialize($this->data)),

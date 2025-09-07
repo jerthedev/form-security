@@ -24,6 +24,7 @@ namespace JTD\FormSecurity\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Cache;
 use JTD\FormSecurity\Contracts\CacheableModelInterface;
 use JTD\FormSecurity\Enums\PatternAction;
@@ -149,6 +150,45 @@ class SpamPattern extends BaseModel implements CacheableModelInterface
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    // Relationships
+
+    /**
+     * Get all pattern matches for this pattern
+     */
+    public function patternMatches(): HasMany
+    {
+        return $this->hasMany(PatternMatch::class, 'pattern_id');
+    }
+
+    /**
+     * Get recent pattern matches
+     */
+    public function recentMatches(int $hours = 24): HasMany
+    {
+        return $this->patternMatches()
+            ->where('matched_at', '>=', now()->subHours($hours));
+    }
+
+    /**
+     * Get high confidence matches
+     */
+    public function highConfidenceMatches(float $threshold = 0.8): HasMany
+    {
+        return $this->patternMatches()
+            ->where('confidence_level', '>=', $threshold);
+    }
+
+    /**
+     * Get false positive matches
+     */
+    public function falsePositiveMatches(): HasMany
+    {
+        return $this->patternMatches()
+            ->where('is_false_positive', true);
+    }
+
+    // Query Scopes
 
     /**
      * Query scope: Active patterns only

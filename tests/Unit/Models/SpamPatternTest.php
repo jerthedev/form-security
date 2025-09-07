@@ -656,4 +656,176 @@ class SpamPatternTest extends TestCase
         $this->assertTrue($blockingPattern->preventsSubmission());
         $this->assertFalse($flaggingPattern->preventsSubmission());
     }
+
+    // Epic-002 Addition: Relationship Tests
+
+    #[Test]
+    #[Group('sprint-007')]
+    #[Group('epic-002')]
+    #[Group('relationships')]
+    #[Group('ticket-2011')]
+    public function it_has_pattern_matches_relationship(): void
+    {
+        $pattern = SpamPattern::create([
+            'name' => 'Relationship Test',
+            'pattern_type' => PatternType::KEYWORD->value,
+            'pattern' => 'test',
+            'action' => PatternAction::BLOCK->value,
+        ]);
+
+        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\HasMany::class, $pattern->patternMatches());
+        $this->assertEquals('pattern_id', $pattern->patternMatches()->getForeignKeyName());
+        $this->assertEquals('id', $pattern->patternMatches()->getLocalKeyName());
+    }
+
+    #[Test]
+    #[Group('sprint-007')]
+    #[Group('epic-002')]
+    #[Group('relationships')]
+    #[Group('ticket-2011')]
+    public function it_has_recent_matches_relationship(): void
+    {
+        $pattern = SpamPattern::create([
+            'name' => 'Recent Matches Test',
+            'pattern_type' => PatternType::KEYWORD->value,
+            'pattern' => 'test',
+            'action' => PatternAction::BLOCK->value,
+        ]);
+
+        $recentMatches = $pattern->recentMatches(24);
+        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\HasMany::class, $recentMatches);
+    }
+
+    #[Test]
+    #[Group('sprint-007')]
+    #[Group('epic-002')]
+    #[Group('relationships')]
+    #[Group('ticket-2011')]
+    public function it_has_high_confidence_matches_relationship(): void
+    {
+        $pattern = SpamPattern::create([
+            'name' => 'High Confidence Test',
+            'pattern_type' => PatternType::KEYWORD->value,
+            'pattern' => 'test',
+            'action' => PatternAction::BLOCK->value,
+        ]);
+
+        $highConfidenceMatches = $pattern->highConfidenceMatches(0.8);
+        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\HasMany::class, $highConfidenceMatches);
+    }
+
+    #[Test]
+    #[Group('sprint-007')]
+    #[Group('epic-002')]
+    #[Group('relationships')]
+    #[Group('ticket-2011')]
+    public function it_has_false_positive_matches_relationship(): void
+    {
+        $pattern = SpamPattern::create([
+            'name' => 'False Positive Test',
+            'pattern_type' => PatternType::KEYWORD->value,
+            'pattern' => 'test',
+            'action' => PatternAction::BLOCK->value,
+        ]);
+
+        $falsePositiveMatches = $pattern->falsePositiveMatches();
+        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\HasMany::class, $falsePositiveMatches);
+    }
+
+    // Epic-002 Addition: Enhanced Pattern Testing
+
+    #[Test]
+    #[Group('sprint-007')]
+    #[Group('epic-002')]
+    #[Group('pattern-testing')]
+    #[Group('ticket-2011')]
+    public function it_tests_regex_pattern_correctly(): void
+    {
+        $pattern = SpamPattern::create([
+            'name' => 'Regex Test',
+            'pattern_type' => PatternType::REGEX->value,
+            'pattern' => '(viagra|casino|lottery)',
+            'action' => PatternAction::BLOCK->value,
+            'risk_score' => 85,
+        ]);
+
+        $result = $pattern->testPattern('Buy cheap viagra online now!');
+
+        $this->assertIsArray($result);
+        $this->assertTrue($result['matches']);
+        $this->assertEquals('regex', $result['pattern_type']);
+        $this->assertEquals(85, $result['risk_score']);
+        $this->assertEquals(PatternAction::BLOCK->value, $result['action']);
+    }
+
+    #[Test]
+    #[Group('sprint-007')]
+    #[Group('epic-002')]
+    #[Group('pattern-testing')]
+    #[Group('ticket-2011')]
+    public function it_tests_case_sensitive_pattern(): void
+    {
+        $pattern = SpamPattern::create([
+            'name' => 'Case Sensitive Test',
+            'pattern_type' => PatternType::KEYWORD->value,
+            'pattern' => 'SPAM',
+            'case_sensitive' => true,
+            'action' => PatternAction::FLAG->value,
+        ]);
+
+        $matchResult = $pattern->testPattern('This contains SPAM');
+        $noMatchResult = $pattern->testPattern('This contains spam');
+
+        $this->assertTrue($matchResult['matches']);
+        $this->assertFalse($noMatchResult['matches']);
+    }
+
+    #[Test]
+    #[Group('sprint-007')]
+    #[Group('epic-002')]
+    #[Group('pattern-testing')]
+    #[Group('ticket-2011')]
+    public function it_tests_whole_word_only_pattern(): void
+    {
+        $pattern = SpamPattern::create([
+            'name' => 'Whole Word Test',
+            'pattern_type' => PatternType::KEYWORD->value,
+            'pattern' => 'win',
+            'whole_word_only' => true,
+            'action' => PatternAction::FLAG->value,
+        ]);
+
+        $matchResult = $pattern->testPattern('You can win prizes');
+        $noMatchResult = $pattern->testPattern('This is winning content');
+
+        $this->assertTrue($matchResult['matches']);
+        $this->assertFalse($noMatchResult['matches']);
+    }
+
+    #[Test]
+    #[Group('sprint-007')]
+    #[Group('epic-002')]
+    #[Group('pattern-testing')]
+    #[Group('ticket-2011')]
+    public function it_tests_content_length_pattern(): void
+    {
+        $pattern = SpamPattern::create([
+            'name' => 'Content Length Test',
+            'pattern_type' => PatternType::CONTENT_LENGTH->value,
+            'pattern' => '',
+            'pattern_config' => [
+                'min_length' => 10,
+                'max_length' => 50,
+            ],
+            'action' => PatternAction::FLAG->value,
+        ]);
+
+        $validResult = $pattern->testPattern('This is valid content length');
+        $tooShortResult = $pattern->testPattern('Too short');
+        $tooLongResult = $pattern->testPattern('This content is way too long and exceeds the maximum allowed length for this pattern test');
+
+        $this->assertTrue($validResult['matches']);
+        $this->assertFalse($tooShortResult['matches']);
+        $this->assertFalse($tooLongResult['matches']);
+    }
 }

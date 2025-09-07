@@ -41,7 +41,6 @@ abstract class TestCase extends Orchestra
         parent::setUp();
 
         // Additional test setup can be added here
-        $this->setUpDatabase();
         $this->setUpConfiguration();
     }
 
@@ -94,15 +93,6 @@ abstract class TestCase extends Orchestra
         $app['config']->set('form-security.features.rate_limiting', true);
         $app['config']->set('form-security.features.caching', false); // Disable caching in tests
         $app['config']->set('form-security.debug.enabled', true);
-    }
-
-    /**
-     * Setup database for testing.
-     */
-    protected function setUpDatabase(): void
-    {
-        // Load migrations for testing
-        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
     }
 
     /**

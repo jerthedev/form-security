@@ -100,7 +100,6 @@ class FormSecurityServiceProvider extends ServiceProvider
         ];
     }
 
-
     /**
      * Lightweight boot operations that don't require heavy resources.
      */
